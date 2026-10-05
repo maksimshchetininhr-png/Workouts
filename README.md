@@ -1,4 +1,4 @@
-# Training App v4.2
+# Training App v4.3
 
 # 12-Week Training App — v4
 
@@ -47,7 +47,7 @@ A known baseline is always preferred. Once workouts are logged, the app uses the
 Unknown lifts use conservative calibration loads based mainly on bodyweight. These are intentionally not presented as estimated 1RM/5RM values, because age, height and bodyweight do not predict an individual's lifting strength accurately enough for that.
 
 
-## v4.2
+## v4.3
 - Adds weekly workload tracking on the Progress screen.
 - Rep-based tonnage is calculated from logged load x reps.
 - Two-dumbbell/per-hand movements are doubled.
@@ -63,3 +63,8 @@ Unknown lifts use conservative calibration loads based mainly on bodyweight. The
 - A rest timer starts automatically after each completed set. Defaults are 3:00 for heavy strength, 2:00–2:30 for compound lifts/carries, 1:30 for accessories and 1:00 for core/prehab.
 - The floating timer supports **+30 sec** and **Skip**.
 - Progress now includes weekly total and average training time.
+
+
+## v4.3
+- Replaced the app icon/logo with the selected cropped aurora mountain image for the home-screen icon and PWA icons.
+- Bumped visible version and cache version so the update is easier to verify and refresh.
