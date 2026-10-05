@@ -1,40 +1,45 @@
-# 12-Week Training PWA
+# 12-Week Training App — v3
 
-A small installable web app for the 12-week Saturday / Sunday / Wednesday training program.
+A phone-friendly installable web app (PWA) for the 12-week Saturday / Sunday / Wednesday program.
 
-## What it does
+## v3 changes
+- Warm-up is shown inside every workout.
+- Goal exercises are marked with a purple **GOAL** badge and a **Goals this session** card.
+- Each suitable exercise shows a suggested starting load.
+- Tap **Use X kg for all sets** to pre-fill the weight column.
+- Suggestions use your saved baseline first, then your previous workout results.
+- If a baseline is unknown, the app uses a conservative bodyweight-based *calibration load* rather than treating demographic averages as your true strength.
+- Progress now shows live goal cards for chin-ups, deadlift, farmer carries and machine chest press.
+- Offline cache bumped to v3 so updated GitHub Pages files replace the older app more reliably.
 
-- Shows the correct workout for the current training day
-- Lets you browse all 12 weeks
-- Logs weight, reps, RIR and pain per set
-- Stores session notes and completed workouts
-- Tracks Week 1 / 4 / 8 / 12 benchmarks
-- Exports/imports a JSON backup
-- Works offline after the first successful load when hosted as a PWA
+## Current known baselines preloaded
+- Age: 36
+- Height: 181 cm
+- Bodyweight: 82 kg
+- Strict chin-up max: 8 clean reps (editable)
+- Machine chest press: 35 kg
+- Chest-supported DB row: 16 kg per hand
+- Lateral raise: 4 kg per hand
+- Scaption: 4 kg per hand
+- Hammer curl: 10 kg per hand
 
-## Default start date
+Deadlift, hip thrust and farmer carry are left blank so the app gives a conservative first-session calibration suggestion until you enter your approximate real baseline.
 
-Saturday, 10 October 2026. Change this from the Settings button in the app.
+## Update your GitHub Pages app
+Upload/replace these files in the root of the `Workouts` repository:
+- `index.html`
+- `app.js`
+- `styles.css`
+- `manifest.webmanifest`
+- `service-worker.js`
+- `icon-192.png`
+- `icon-512.png`
 
-## Easiest iPhone installation
+Commit the changes. GitHub Pages should redeploy automatically.
 
-The files need to be served over HTTPS for full PWA/offline installation.
+If the installed iPhone app still shows the old version, fully close it and reopen it once while online. If needed, open the GitHub Pages URL in Safari and refresh once; the v3 service worker is configured to fetch the latest page on navigation.
 
-### Option A: GitHub Pages
-1. Create a new GitHub repository.
-2. Upload the CONTENTS of the `training_app` folder to the repository root.
-3. In GitHub, open Settings > Pages.
-4. Under Build and deployment, choose `Deploy from a branch`.
-5. Select the `main` branch and `/ (root)`, then save.
-6. Open the Pages address in Safari on the iPhone.
-7. Tap Share > Add to Home Screen.
+## Baseline logic
+A known baseline is always preferred. Once workouts are logged, the app uses the previous load, reps, RIR and pain to recommend whether to increase, repeat or reduce the load.
 
-### Option B: Netlify Drop
-1. On a computer, open Netlify Drop in a browser.
-2. Drag the `training_app` folder onto the page.
-3. Open the generated HTTPS address on the iPhone in Safari.
-4. Tap Share > Add to Home Screen.
-
-## Data
-
-Logs are stored in the browser on the device. Use the Backup tab to export a JSON backup periodically.
+Unknown lifts use conservative calibration loads based mainly on bodyweight. These are intentionally not presented as estimated 1RM/5RM values, because age, height and bodyweight do not predict an individual's lifting strength accurately enough for that.

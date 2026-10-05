@@ -35,21 +35,32 @@
   <dialog id="settingsDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-head">
-        <h2>Settings</h2>
+        <h2>Settings & baselines</h2>
         <button class="icon-btn" value="cancel">✕</button>
       </div>
-      <label>
-        Program start date (Saturday)
-        <input type="date" id="startDateInput" />
-      </label>
-      <label>
-        Chest press starting load (kg)
-        <input type="number" step="0.5" id="chestStartInput" />
-      </label>
-      <label>
-        Row starting DB load / hand (kg)
-        <input type="number" step="0.5" id="rowStartInput" />
-      </label>
+      <div class="dialog-scroll">
+        <label>Program start date (Saturday)<input type="date" id="startDateInput" /></label>
+        <div class="settings-section">Profile</div>
+        <div class="three-grid">
+          <label>Age<input type="number" id="ageInput" /></label>
+          <label>Height cm<input type="number" id="heightInput" /></label>
+          <label>Weight kg<input type="number" step="0.1" id="bodyweightInput" /></label>
+        </div>
+        <p class="muted small">Enter the lifts you roughly know. If something is blank, the app uses a conservative calibration load based mainly on bodyweight and then adapts from your logged reps, RIR and pain. Age/height alone are not reliable enough to predict an individual strength level.</p>
+        <div class="settings-section">Strength baselines</div>
+        <label>Deadlift — comfortable 5RM (kg)<input type="number" step="2.5" id="deadliftBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="deadliftAutoHint"></span></label>
+        <label>Strict chin-up — max clean reps<input type="number" id="chinupBaselineInput" /><span class="field-hint" id="chinupAutoHint"></span></label>
+        <label>Machine chest press — current 8–12RM / working load (kg)<input type="number" step="0.5" id="chestBaselineInput" /></label>
+        <label>Chest-supported DB row — kg per hand<input type="number" step="0.5" id="rowBaselineInput" /></label>
+        <label>Hip thrust — current 8–10RM (kg)<input type="number" step="2.5" id="hipThrustBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="hipAutoHint"></span></label>
+        <label>Farmer carry 40 m — total load (kg)<input type="number" step="2.5" id="farmerBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="farmerAutoHint"></span></label>
+        <div class="settings-section">Accessory baselines</div>
+        <div class="three-grid">
+          <label>Lateral kg/hand<input type="number" step="0.5" id="lateralBaselineInput" /></label>
+          <label>Scaption kg/hand<input type="number" step="0.5" id="scaptionBaselineInput" /></label>
+          <label>Hammer kg/hand<input type="number" step="0.5" id="hammerBaselineInput" /></label>
+        </div>
+      </div>
       <div class="dialog-actions">
         <button class="secondary" value="cancel">Cancel</button>
         <button id="saveSettingsBtn" class="primary" value="default">Save</button>

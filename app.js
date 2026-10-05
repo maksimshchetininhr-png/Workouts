@@ -6,8 +6,18 @@ const STORAGE = {
 
 const defaultSettings = {
   startDate: '2026-10-10',
-  chestStart: 35,
-  rowStart: 16
+  profile: { age: 36, heightCm: 181, bodyweightKg: 82 },
+  baselines: {
+    deadlift5RM: '',
+    chinupMax: 8,
+    chestPress: 35,
+    dbRow: 16,
+    hipThrust: '',
+    farmerCarryTotal: '',
+    lateralRaise: 4,
+    scaption: 4,
+    hammerCurl: 10
+  }
 };
 
 const cycles = [
@@ -26,25 +36,97 @@ const progressionNote = (week) => {
   ][phase - 1];
 };
 
+const warmups = {
+  1: {
+    sat: [
+      ['BikeErg / easy bike','3 min'],
+      ['Hip hinge drill','10 reps'],
+      ['Band external rotation','12/side'],
+      ['Scapular pull-up','8 reps'],
+      ['Deadlift ramp-up','3 progressive sets before work sets']
+    ],
+    sun: [
+      ['BikeErg / easy bike','3 min'],
+      ['Band external rotation','12/side'],
+      ['Serratus wall slide','8–10 reps'],
+      ['GHD hip extension','8 easy reps'],
+      ['Light DB row','10 reps/side']
+    ],
+    wed: [
+      ['Easy bike','3 min'],
+      ['Band external rotation','12/side'],
+      ['Serratus wall slide','8–10 reps'],
+      ['Machine chest press ramp-up','2 light sets'],
+      ['Bodyweight glute bridge','10 reps']
+    ]
+  },
+  2: {
+    sat: [
+      ['BikeErg / easy bike','3 min'],
+      ['Band external rotation','12/side'],
+      ['Serratus wall slide','8–10 reps'],
+      ['Scapular pull-up','8 reps'],
+      ['Very light lateral raise','15 reps']
+    ],
+    sun: [
+      ['Easy bike','3 min'],
+      ['Band external rotation','12/side'],
+      ['Serratus wall slide','8–10 reps'],
+      ['Light scaption','12 reps'],
+      ['GHD hip extension','8 easy reps']
+    ],
+    wed: [
+      ['Easy bike','3 min'],
+      ['Band external rotation','12/side'],
+      ['Serratus wall slide','8–10 reps'],
+      ['Machine chest press ramp-up','2 light sets'],
+      ['Light cable lateral raise','12 reps/side']
+    ]
+  },
+  3: {
+    sat: [
+      ['BikeErg / easy bike','3 min'],
+      ['Hip hinge drill','10 reps'],
+      ['Band external rotation','12/side'],
+      ['Scapular pull-up','8 reps'],
+      ['Deadlift ramp-up','3 progressive sets before work sets']
+    ],
+    sun: [
+      ['Easy bike','3 min'],
+      ['Band external rotation','12/side'],
+      ['Serratus wall slide','8–10 reps'],
+      ['Bodyweight glute bridge','12 reps'],
+      ['Hip thrust ramp-up','2 progressive sets']
+    ],
+    wed: [
+      ['Easy bike','3 min'],
+      ['Band external rotation','12/side'],
+      ['Serratus wall slide','8–10 reps'],
+      ['Machine chest press ramp-up','2 light sets'],
+      ['Hip thrust ramp-up','2 progressive sets']
+    ]
+  }
+};
+
 const basePrograms = {
   1: {
     sat: [
       ['Deadlift',4,'5–7','Main strength lift. Build up gradually.'],
       ['Strict chin-up',4,'5–8','Neutral or supinated grip; no kipping.'],
-      ['Chest-supported DB row',3,'8–12','Start around 16 kg/hand if comfortable.'],
+      ['Chest-supported DB row',3,'8–12','Strict, chest supported.'],
       ['Farmer carry',4,'30–40 m','Heavy, ribs down, shoulders relaxed.'],
       ['Band external rotation',2,'15/side','Shoulder prehab.']
     ],
     sun: [
       ['GHD hip extension',3,'10–15','Controlled tempo.'],
       ['Chest-supported DB row',3,'10–15','Lighter than Saturday.'],
-      ['DB lateral raise',3,'12–20','Start around 4 kg.'],
-      ['DB scaption',3,'10–15','4 kg if pain-free.'],
-      ['Hammer curl',3,'8–12','Start around 10 kg.'],
+      ['DB lateral raise',3,'12–20','Strict reps; no shrugging.'],
+      ['DB scaption',3,'10–15','Pain-free scapular plane.'],
+      ['Hammer curl',3,'8–12','Controlled eccentric.'],
       ['Ab wheel / hanging knee raise',3,'6–15','Alternate weekly.']
     ],
     wed: [
-      ['Machine chest press',4,'8–12','Start around 35 kg; pain-free ROM only.'],
+      ['Machine chest press',4,'8–12','Pain-free ROM only.'],
       ['Hip thrust',3,'8–12','Moderately heavy.'],
       ['Seated or cable row',3,'8–12','Controlled full ROM.'],
       ['Leg curl',3,'10–15','Hamstring hypertrophy.'],
@@ -55,7 +137,7 @@ const basePrograms = {
   2: {
     sat: [
       ['Deadlift',3,'5–6','Maintenance strength; keep reps clean.'],
-      ['Strict chin-up',3,'6–8','Keep pulling strength.'],
+      ['Strict chin-up',3,'6–8','Maintain pulling strength.'],
       ['DB lateral raise',4,'12–20','Primary delt volume.'],
       ['Rear-delt raise',3,'12–20','Chest-supported if possible.'],
       ['DB triceps extension / kickback',3,'10–15','Choose the pain-free option.'],
@@ -81,7 +163,7 @@ const basePrograms = {
   3: {
     sat: [
       ['Deadlift',4,'4–6','Primary strength lift.'],
-      ['Weighted / strict chin-up',4,'4–6','Add load only if bodyweight reps are clean.'],
+      ['Weighted / strict chin-up',4,'4–6','Add load only when bodyweight sets are clean.'],
       ['Farmer carry',4,'30–40 m','Progress total load.'],
       ['Chest-supported DB row',3,'8–10','Strength-hypertrophy bridge.'],
       ['Ab wheel',3,'6–12','Strict trunk position.']
@@ -105,6 +187,26 @@ const basePrograms = {
   }
 };
 
+const goalMap = {
+  1: {
+    'Deadlift': 'Cycle goal: build your clean 5–7 rep working load. By Week 3 aim for ~+5 kg vs Week 1 at similar RIR and pain.',
+    'Strict chin-up': 'Cycle goal: add 1–2 clean reps to your sets and improve your max strict-rep benchmark.',
+    'Machine chest press': 'Secondary goal: reach all prescribed sets at 12 reps pain-free before increasing the stack.'
+  },
+  2: {
+    'DB lateral raise': 'Cycle goal: add strict reps first, then the smallest load jump without shrugging or shoulder irritation.',
+    'DB scaption': 'Cycle goal: own 4 kg for 15 clean reps pain-free before considering 5 kg.',
+    'Hammer curl': 'Cycle goal: progress from 10 kg toward clean 3–4 × 12 before increasing load.',
+    'Machine chest press': 'Secondary goal: maintain or slowly progress pain-free pressing capacity.'
+  },
+  3: {
+    'Deadlift': 'Cycle goal: strongest clean 4–6 rep sets of the program in Week 11; no grinders.',
+    'Weighted / strict chin-up': 'Cycle goal: once 4 × 6 bodyweight is comfortable, add 2.5 kg and rebuild reps.',
+    'Farmer carry': 'Cycle goal: carry ~10–20% more total load than your Week 9 baseline for the same distance.',
+    'Hip thrust': 'Secondary goal: progress a strong 6–10 rep hip-extension pattern while the knee stays calm.'
+  }
+};
+
 const benchmarkRows = [
   ['Strict chin-ups','max reps'],
   ['Weighted chin-up','3–5RM load'],
@@ -117,7 +219,18 @@ const benchmarkRows = [
   ['Waist','cm']
 ];
 
-let settings = loadJSON(STORAGE.settings, defaultSettings);
+function deepSettings(raw){
+  const out = structuredClone(defaultSettings);
+  if(!raw) return out;
+  if(raw.startDate) out.startDate = raw.startDate;
+  out.profile = {...out.profile, ...(raw.profile||{})};
+  out.baselines = {...out.baselines, ...(raw.baselines||{})};
+  if(raw.chestStart && !raw.baselines?.chestPress) out.baselines.chestPress = raw.chestStart;
+  if(raw.rowStart && !raw.baselines?.dbRow) out.baselines.dbRow = raw.rowStart;
+  return out;
+}
+
+let settings = deepSettings(loadJSON(STORAGE.settings, defaultSettings));
 let logs = loadJSON(STORAGE.logs, {});
 let benchmarks = loadJSON(STORAGE.benchmarks, {});
 let currentView = 'today';
@@ -136,6 +249,7 @@ function saveJSON(key, value){ localStorage.setItem(key, JSON.stringify(value));
 function cycleForWeek(w){ return w <= 4 ? 1 : w <= 8 ? 2 : 3; }
 function dayKeyFromDate(d){ return ({6:'sat',0:'sun',3:'wed'})[d.getDay()] || null; }
 function dayLabel(k){ return ({sat:'Saturday',sun:'Sunday',wed:'Wednesday'})[k]; }
+function dayOrder(k){ return ({sat:0,sun:1,wed:2})[k] ?? 0; }
 function parseLocalDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,12); }
 function getProgramWeek(date){
   const start = parseLocalDate(settings.startDate);
@@ -166,6 +280,116 @@ function getExercises(week, day){
 }
 function logKey(week, day){ return `w${week}-${day}`; }
 function getSessionLog(week, day){ return logs[logKey(week,day)] || {exercises:{}, notes:'', completed:false}; }
+function roundStep(n, step){ return Math.round(n/step)*step; }
+function numeric(v){ const n=Number(v); return Number.isFinite(n) && n>0 ? n : null; }
+function profileWeight(){ return numeric(settings.profile?.bodyweightKg) || 82; }
+function repRange(reps){
+  const nums=String(reps).match(/\d+/g)?.map(Number)||[];
+  return nums.length ? {min:nums[0], max:nums[1]||nums[0]} : null;
+}
+function previousExerciseLog(exerciseName, week, day){
+  const currentScore=(week-1)*3+dayOrder(day);
+  let best=null;
+  Object.entries(logs).forEach(([key,entry])=>{
+    const m=key.match(/^w(\d+)-(sat|sun|wed)$/); if(!m)return;
+    const score=(Number(m[1])-1)*3+dayOrder(m[2]);
+    if(score>=currentScore)return;
+    const sets=entry.exercises?.[exerciseName];
+    if(!sets?.length)return;
+    if(!best || score>best.score) best={score,sets};
+  });
+  return best?.sets || null;
+}
+function progressionFromLast(e, week, day){
+  const prev=previousExerciseLog(e.name,week,day); if(!prev)return null;
+  const rows=prev.filter(r=>r && (r.weight!=='' || r.reps!=='')); if(!rows.length)return null;
+  const weights=rows.map(r=>Number(r.weight)).filter(Number.isFinite);
+  if(!weights.length)return null;
+  const lastWeight=weights[0];
+  const pains=rows.map(r=>Number(r.pain)).filter(Number.isFinite);
+  const rirs=rows.map(r=>Number(r.rir)).filter(Number.isFinite);
+  const reps=rows.map(r=>Number(r.reps)).filter(Number.isFinite);
+  const range=repRange(e.reps);
+  const maxPain=pains.length?Math.max(...pains):0;
+  const minRir=rirs.length?Math.min(...rirs):2;
+  if(maxPain>2) return {value:roundStep(lastWeight*0.9,2.5), text:`Reduce from last time (${lastWeight} kg) because pain was >2/10.`, kind:'log'};
+  const allTop=range && reps.length>=Math.min(e.sets,rows.length) && reps.every(r=>r>=range.max);
+  if(allTop && minRir>=1){
+    const step = /Deadlift|Hip thrust/.test(e.name)?5 : /DB row|1-arm DB row|Hammer curl/.test(e.name)?2 : /lateral|scaption/i.test(e.name)?1 : /chest press/i.test(e.name)?2.5 : 2.5;
+    return {value:roundStep(lastWeight+step, step<2?1:step), text:`Progress from ${lastWeight} kg: all logged sets reached the top of the rep range with room left.`, kind:'log'};
+  }
+  return {value:lastWeight, text:`Repeat ${lastWeight} kg and beat reps/quality before adding load.`, kind:'log'};
+}
+function baselineSuggestion(e,week){
+  const phase=((week-1)%4)+1;
+  const b=settings.baselines||{}; const bw=profileWeight();
+  const factors=[0.80,0.85,0.90,0.70];
+  if(e.name==='Deadlift'){
+    const base=numeric(b.deadlift5RM);
+    if(base) return {value:roundStep(base*factors[phase-1],2.5), text:`Based on your ${base} kg comfortable 5RM baseline.`, kind:'baseline'};
+    return {value:roundStep(bw*0.80,2.5), text:`Conservative starter estimate from ${bw} kg bodyweight. Treat this as a calibration load, not a strength prediction.`, kind:'estimate'};
+  }
+  if(e.name==='Strict chin-up'){
+    const max=numeric(b.chinupMax)||8; const pct=[0.62,0.68,0.72,0.55][phase-1];
+    const reps=Math.max(4,Math.min(8,Math.floor(max*pct)));
+    return {value:null,text:`Bodyweight · aim ~${reps} reps/set. Baseline max: ${max} clean reps.`,kind:numeric(b.chinupMax)?'baseline':'estimate'};
+  }
+  if(e.name==='Weighted / strict chin-up'){
+    return {value:null,text:'Start at bodyweight. When 4 × 6 is clean at ≥2 RIR and pain ≤2/10, add 2.5 kg.',kind:'rule'};
+  }
+  if(e.name==='Chest-supported DB row' || e.name==='1-arm DB row'){
+    const v=numeric(b.dbRow)||16; return {value:v,text:`${v} kg/hand starting point. Add load only after the top rep target is clean.`,kind:numeric(b.dbRow)?'baseline':'estimate'};
+  }
+  if(e.name==='Machine chest press'){
+    const v=numeric(b.chestPress)||35; return {value:v,text:`${v} kg starting point. Reach all sets at 12 pain-free reps before increasing.`,kind:numeric(b.chestPress)?'baseline':'estimate'};
+  }
+  if(e.name==='Hip thrust'){
+    const base=numeric(b.hipThrust); if(base) return {value:roundStep(base*0.85,5),text:`Based on your ${base} kg 8–10RM baseline.`,kind:'baseline'};
+    return {value:roundStep(bw*0.90,5),text:`Conservative starter estimate from bodyweight. Adjust to ~3 RIR on the first set.`,kind:'estimate'};
+  }
+  if(e.name==='Farmer carry'){
+    const base=numeric(b.farmerCarryTotal); const total=base||roundStep(bw*0.70,5);
+    return {value:total,text:`~${total} kg total (${roundStep(total/2,2.5)} kg/hand) for 30–40 m.`,kind:base?'baseline':'estimate'};
+  }
+  if(e.name==='Suitcase carry'){
+    const base=numeric(b.farmerCarryTotal); const per=base?roundStep(base/2,2.5):roundStep(bw*0.35,2.5);
+    return {value:per,text:`~${per} kg in one hand; keep torso upright.`,kind:base?'baseline':'estimate'};
+  }
+  if(e.name==='DB lateral raise'){
+    const v=numeric(b.lateralRaise)||4; return {value:v,text:`${v} kg/hand; strict reps first.`,kind:'baseline'};
+  }
+  if(e.name==='DB scaption'){
+    const v=numeric(b.scaption)||4; return {value:v,text:`${v} kg/hand while completely shoulder-friendly.`,kind:'baseline'};
+  }
+  if(e.name==='Hammer curl'){
+    const v=numeric(b.hammerCurl)||10; return {value:v,text:`${v} kg/hand; use double progression.`,kind:'baseline'};
+  }
+  if(/Cable|Leg curl|Seated or cable row/.test(e.name)) return {value:null,text:'Machine stacks vary: choose a load that leaves ~3 RIR in Week 1, then log it as your baseline.',kind:'rule'};
+  if(/GHD hip extension/.test(e.name)) return {value:null,text:'Start bodyweight. Add a light plate only after 15 controlled reps are easy.',kind:'rule'};
+  return null;
+}
+function suggestedLoad(e,week,day){ return progressionFromLast(e,week,day) || baselineSuggestion(e,week); }
+function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; }
+
+function sessionGoalsHTML(week, exercises){
+  const goals=exercises.map(e=>({name:e.name,goal:goalFor(e,week)})).filter(x=>x.goal);
+  if(!goals.length) return '';
+  return `<div class="section-title">Goals this session</div><section class="card session-goals">${goals.map(g=>`<div class="session-goal"><span class="session-goal-icon">🎯</span><div><strong>${g.name}</strong><div class="exercise-meta">${g.goal}</div></div></div>`).join('')}</section>`;
+}
+
+function targetSummary(){
+  const b=settings.baselines||{}; const bw=profileWeight();
+  const chin=numeric(b.chinupMax)||8;
+  const dl=numeric(b.deadlift5RM);
+  const farmer=numeric(b.farmerCarryTotal)||roundStep(bw*0.70,5);
+  const chest=numeric(b.chestPress)||35;
+  return [
+    {name:'Strict chin-up', value:`${chin} → ${chin+2} reps`, note:`Cycle 1 target; 12-week stretch target ${chin+3}–${chin+5} clean reps.`},
+    {name:'Deadlift', value:dl?`${dl} → ${roundStep(dl*1.05,2.5)}+ kg`:'Calibrate in Week 1', note:dl?'Comfortable 5RM / working-strength target for Cycle 1.':'First suggested work set is intentionally conservative; your logged RIR will set the real baseline.'},
+    {name:'Farmer carry', value:`${farmer} → ${roundStep(farmer*1.10,5)}+ kg total`, note:'Build toward ~10–20% more load over the program for the same distance.'},
+    {name:'Chest press', value:`${chest} kg → 4×12`, note:'First goal is pain-free rep progression; only then increase the machine load.'}
+  ];
+}
 
 function render(){
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active', b.dataset.view===currentView));
@@ -184,9 +408,7 @@ function renderToday(){
     return;
   }
   const next=nextTrainingDate(today);
-  if(!next){
-    app.innerHTML=`<div class="card"><div class="empty">Your 12-week program has finished. Check Progress for your final benchmarks.</div></div>`; return;
-  }
+  if(!next){ app.innerHTML=`<div class="card"><div class="empty">Your 12-week program has finished. Check Progress for your final benchmarks.</div></div>`; return; }
   const nw=getProgramWeek(next), nd=dayKeyFromDate(next);
   app.innerHTML = `
     <section class="card hero">
@@ -200,6 +422,12 @@ function renderToday(){
   document.getElementById('openNext').onclick=()=>{ selectedWeek=nw; selectedDay=nd; currentView='program'; render(); };
 }
 
+function warmupHTML(week,day){
+  const list=warmups[cycleForWeek(week)][day];
+  return `<div class="section-title">Warm-up · ~8 min</div><section class="card warmup-card">
+    ${list.map(([n,d],i)=>`<div class="warmup-row"><span class="warmup-num">${i+1}</span><div><strong>${n}</strong><div class="exercise-meta">${d}</div></div></div>`).join('')}
+  </section>`;
+}
 function sessionHTML(week,day,isToday=false){
   const cycleNo=cycleForWeek(week), cycle=cycles[cycleNo-1], ex=getExercises(week,day), log=getSessionLog(week,day);
   const dateLine=isToday?formatDate(new Date()):`Week ${week}`;
@@ -208,6 +436,8 @@ function sessionHTML(week,day,isToday=false){
       <div class="row between wrap"><div><div class="muted small">${dateLine} · Cycle ${cycleNo}</div><h2 style="margin-top:5px">${dayLabel(day)} · ${cycle.name}</h2></div><span class="badge ${log.completed?'good':''}">${log.completed?'✓ Completed':'~60 min'}</span></div>
       <p class="muted small" style="margin-bottom:0">${progressionNote(week)}</p>
     </section>
+    ${warmupHTML(week,day)}
+    ${sessionGoalsHTML(week,ex)}
     <div class="section-title">Workout</div>
     <section class="card">
       ${ex.map((e,i)=>exerciseHTML(week,day,e,i,log)).join('')}
@@ -215,21 +445,21 @@ function sessionHTML(week,day,isToday=false){
     <div class="section-title">Session notes</div>
     <section class="card">
       <textarea id="sessionNotes" placeholder="Energy, shoulder/knee response, anything to change next time...">${escapeHtml(log.notes||'')}</textarea>
-      <div class="row" style="margin-top:12px">
-        <button id="saveSession" class="primary full">Save workout</button>
-      </div>
-      <div class="row" style="margin-top:8px">
-        <button id="toggleComplete" class="secondary full">${log.completed?'Mark as not completed':'Mark completed'}</button>
-      </div>
+      <div class="row" style="margin-top:12px"><button id="saveSession" class="primary full">Save workout</button></div>
+      <div class="row" style="margin-top:8px"><button id="toggleComplete" class="secondary full">${log.completed?'Mark as not completed':'Mark completed'}</button></div>
     </section>
     <div class="callout warn"><strong>Pain rule:</strong> 0–2/10 continue; around 3/10 reduce load/ROM; sharp or >3/10 stop that exercise. Symptoms should settle back to baseline by the next day.</div>`;
 }
 function escapeHtml(s){ return String(s).replace(/[&<>"]/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;"}[m])); }
 function exerciseHTML(week,day,e,index,log){
   const saved=log.exercises[e.name] || [];
+  const goal=goalFor(e,week); const suggestion=suggestedLoad(e,week,day);
+  const suggestedText=suggestion ? `<div class="suggestion ${suggestion.kind==='estimate'?'estimated':''}"><strong>Suggested:</strong> ${suggestion.value!==null?`${suggestion.value} kg · `:''}${suggestion.text}${suggestion.value!==null?`<br><button type="button" class="use-suggestion" data-use-suggestion="${encodeURIComponent(e.name)}" data-suggested="${suggestion.value}">Use ${suggestion.value} kg for all sets</button>`:''}</div>` : '';
+  const goalText=goal ? `<div class="goal-strip"><span>🎯</span><div><strong>Working toward</strong><br>${goal}</div></div>` : '';
   return `<div class="exercise">
-    <div class="row between"><div><h3>${e.name}</h3><div class="exercise-meta">${e.sets} sets · ${e.reps}</div></div><span class="badge">${index+1}</span></div>
+    <div class="row between"><div><div class="row wrap" style="gap:6px"><h3>${e.name}</h3>${goal?'<span class="badge goal-badge">GOAL</span>':''}</div><div class="exercise-meta">${e.sets} sets · ${e.reps}</div></div><span class="badge">${index+1}</span></div>
     <div class="exercise-meta">${e.note}</div>
+    ${goalText}${suggestedText}
     <div class="set-grid">
       <div></div><div class="head">kg</div><div class="head">reps</div><div class="head">RIR</div><div class="head">pain</div>
       ${Array.from({length:e.sets},(_,s)=>{
@@ -254,6 +484,11 @@ function bindSessionInputs(week,day){
     entry.notes=document.getElementById('sessionNotes')?.value||'';
     logs[key]=entry; saveJSON(STORAGE.logs,logs);
   };
+  document.querySelectorAll('[data-use-suggestion]').forEach(btn=>btn.onclick=()=>{
+    const ex=btn.dataset.useSuggestion; const v=btn.dataset.suggested;
+    document.querySelectorAll(`[data-ex="${ex}"][data-field="weight"]`).forEach(inp=>{ if(!inp.value) inp.value=v; });
+    toast(`Suggested ${v} kg filled in`);
+  });
   document.getElementById('saveSession').onclick=()=>{ save(); toast('Workout saved'); };
   document.getElementById('toggleComplete').onclick=()=>{ save(); const key=logKey(week,day); logs[key].completed=!logs[key].completed; saveJSON(STORAGE.logs,logs); render(); };
 }
@@ -262,9 +497,7 @@ function renderProgram(){
   pageTitle.textContent='Program';
   app.innerHTML = `
     <div class="week-tabs">${Array.from({length:12},(_,i)=>`<button class="week-pill ${selectedWeek===i+1?'active':''}" data-week="${i+1}">W${i+1}</button>`).join('')}</div>
-    <div class="day-grid">
-      ${['sat','sun','wed'].map(d=>`<button class="day-btn ${selectedDay===d?'active':''}" data-day="${d}">${dayLabel(d)}</button>`).join('')}
-    </div>
+    <div class="day-grid">${['sat','sun','wed'].map(d=>`<button class="day-btn ${selectedDay===d?'active':''}" data-day="${d}">${dayLabel(d)}</button>`).join('')}</div>
     <section class="card cycle-card"><div class="small muted">CYCLE ${cycleForWeek(selectedWeek)} · WEEK ${selectedWeek}</div><h2 style="margin-top:4px">${cycles[cycleForWeek(selectedWeek)-1].name}</h2><p class="muted small">${cycles[cycleForWeek(selectedWeek)-1].focus}</p></section>
     ${sessionHTML(selectedWeek,selectedDay,false)}`;
   document.querySelectorAll('[data-week]').forEach(b=>b.onclick=()=>{selectedWeek=Number(b.dataset.week);renderProgram();});
@@ -276,6 +509,7 @@ function renderProgress(){
   pageTitle.textContent='Progress';
   app.innerHTML=`
     <section class="card hero"><div class="muted small">12-WEEK STRENGTH PASSPORT</div><h2 style="margin-top:6px">Make progress visible</h2><p class="muted small">Record benchmarks in Weeks 1, 4, 8 and 12. Clean reps and joint tolerance matter more than maxing out.</p></section>
+    <section class="card"><h3>Your current targets</h3><div class="target-grid">${targetSummary().map(t=>`<div class="target-card"><strong>${t.name}</strong><div class="target-value">${t.value}</div><div class="target-note">${t.note}</div></div>`).join('')}</div></section>
     <section class="card progress-scroll"><table class="progress-table"><thead><tr><th>Benchmark</th><th>Unit</th><th>W1</th><th>W4</th><th>W8</th><th>W12</th></tr></thead><tbody>
       ${benchmarkRows.map(([name,unit])=>`<tr><td>${name}</td><td class="muted">${unit}</td>${[1,4,8,12].map(w=>`<td><input data-bench="${encodeURIComponent(name)}" data-bw="${w}" value="${benchmarks[name]?.[w]??''}"></td>`).join('')}</tr>`).join('')}
     </tbody></table><button id="saveBench" class="primary full" style="margin-top:10px">Save benchmarks</button></section>
@@ -294,6 +528,7 @@ function renderBackup(){
       <button id="exportBtn" class="primary full">Export backup (.json)</button>
       <label class="secondary full" style="display:block;text-align:center;margin-top:10px">Import backup<input id="importInput" type="file" accept="application/json" hidden></label>
     </section>
+    <section class="card"><h3>How suggestions work</h3><p class="muted small">Known baselines are used first. After you log sessions, the app uses your previous load, reps, RIR and pain to suggest whether to hold, progress, or reduce. Unknown strength movements use conservative bodyweight-based calibration loads rather than pretending age/height can predict your strength; machine stacks use RIR calibration.</p></section>
     <section class="card"><h3>Install on iPhone</h3><ol class="muted small" style="padding-left:20px;line-height:1.6"><li>Open the hosted app in Safari.</li><li>Tap Share.</li><li>Choose <strong>Add to Home Screen</strong>.</li></ol><p class="muted small">Once installed and opened once online, the app is cached for offline use.</p></section>
     <section class="card"><button id="resetBtn" class="danger-btn full">Reset all app data</button></section>`;
   document.getElementById('exportBtn').onclick=exportBackup;
@@ -301,26 +536,49 @@ function renderBackup(){
   document.getElementById('resetBtn').onclick=()=>{ if(confirm('Delete all logs, benchmarks and settings?')){ localStorage.clear(); location.reload(); } };
 }
 function exportBackup(){
-  const data={version:1,exportedAt:new Date().toISOString(),settings,logs,benchmarks};
+  const data={version:2,exportedAt:new Date().toISOString(),settings,logs,benchmarks};
   const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='training-backup.json'; a.click(); URL.revokeObjectURL(url);
 }
 function importBackup(ev){
-  const file=ev.target.files?.[0]; if(!file)return; const reader=new FileReader(); reader.onload=()=>{ try{ const d=JSON.parse(reader.result); settings=d.settings||defaultSettings; logs=d.logs||{}; benchmarks=d.benchmarks||{}; saveJSON(STORAGE.settings,settings); saveJSON(STORAGE.logs,logs); saveJSON(STORAGE.benchmarks,benchmarks); toast('Backup imported'); render(); }catch{ alert('Could not read this backup file.'); } }; reader.readAsText(file);
+  const file=ev.target.files?.[0]; if(!file)return; const reader=new FileReader(); reader.onload=()=>{ try{ const d=JSON.parse(reader.result); settings=deepSettings(d.settings); logs=d.logs||{}; benchmarks=d.benchmarks||{}; saveJSON(STORAGE.settings,settings); saveJSON(STORAGE.logs,logs); saveJSON(STORAGE.benchmarks,benchmarks); toast('Backup imported'); render(); }catch{ alert('Could not read this backup file.'); } }; reader.readAsText(file);
 }
 function toast(msg){
   const t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:999px;font-weight:800;font-size:12px;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.2)'; document.body.appendChild(t); setTimeout(()=>t.remove(),1400);
 }
 
+function updateBaselineHints(){
+  const bw=Number(document.getElementById('bodyweightInput')?.value)||profileWeight();
+  const dl=roundStep(bw*0.80,2.5), hip=roundStep(bw*0.90,5), farmer=roundStep(bw*0.70,5);
+  const set=(id,txt)=>{ const el=document.getElementById(id); if(el) el.textContent=txt; };
+  set('deadliftAutoHint',`If blank: first-session calibration suggestion ≈ ${dl} kg. This is not an estimated max.`);
+  set('chinupAutoHint','If blank: app starts conservatively and learns from your first logged sets. Current default is 8 based on your recent training history.');
+  set('hipAutoHint',`If blank: first-session calibration suggestion ≈ ${hip} kg, then adjust to target RIR.`);
+  set('farmerAutoHint',`If blank: starter suggestion ≈ ${farmer} kg total (${roundStep(farmer/2,2.5)} kg/hand).`);
+}
+function setInput(id,value){ const el=document.getElementById(id); if(el) el.value=value??''; }
+function numOrBlank(id){ const v=document.getElementById(id)?.value; return v===''?'':Number(v); }
 document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{currentView=b.dataset.view;render();}));
 document.getElementById('settingsBtn').onclick=()=>{
-  document.getElementById('startDateInput').value=settings.startDate;
-  document.getElementById('chestStartInput').value=settings.chestStart;
-  document.getElementById('rowStartInput').value=settings.rowStart;
+  setInput('startDateInput',settings.startDate);
+  setInput('ageInput',settings.profile.age); setInput('heightInput',settings.profile.heightCm); setInput('bodyweightInput',settings.profile.bodyweightKg);
+  setInput('deadliftBaselineInput',settings.baselines.deadlift5RM); setInput('chinupBaselineInput',settings.baselines.chinupMax);
+  setInput('chestBaselineInput',settings.baselines.chestPress); setInput('rowBaselineInput',settings.baselines.dbRow);
+  setInput('hipThrustBaselineInput',settings.baselines.hipThrust); setInput('farmerBaselineInput',settings.baselines.farmerCarryTotal);
+  setInput('lateralBaselineInput',settings.baselines.lateralRaise); setInput('scaptionBaselineInput',settings.baselines.scaption); setInput('hammerBaselineInput',settings.baselines.hammerCurl);
+  updateBaselineHints();
+  document.getElementById('bodyweightInput').oninput=updateBaselineHints;
   settingsDialog.showModal();
 };
 document.getElementById('saveSettingsBtn').onclick=(e)=>{
-  e.preventDefault(); settings.startDate=document.getElementById('startDateInput').value||defaultSettings.startDate; settings.chestStart=Number(document.getElementById('chestStartInput').value)||35; settings.rowStart=Number(document.getElementById('rowStartInput').value)||16; saveJSON(STORAGE.settings,settings); selectedWeek=Math.max(1,Math.min(12,getProgramWeek(new Date()))); settingsDialog.close(); render();
+  e.preventDefault();
+  settings.startDate=document.getElementById('startDateInput').value||defaultSettings.startDate;
+  settings.profile={age:Number(document.getElementById('ageInput').value)||36,heightCm:Number(document.getElementById('heightInput').value)||181,bodyweightKg:Number(document.getElementById('bodyweightInput').value)||82};
+  settings.baselines={
+    deadlift5RM:numOrBlank('deadliftBaselineInput'), chinupMax:numOrBlank('chinupBaselineInput'), chestPress:numOrBlank('chestBaselineInput'), dbRow:numOrBlank('rowBaselineInput'),
+    hipThrust:numOrBlank('hipThrustBaselineInput'), farmerCarryTotal:numOrBlank('farmerBaselineInput'), lateralRaise:numOrBlank('lateralBaselineInput'), scaption:numOrBlank('scaptionBaselineInput'), hammerCurl:numOrBlank('hammerBaselineInput')
+  };
+  saveJSON(STORAGE.settings,settings); selectedWeek=Math.max(1,Math.min(12,getProgramWeek(new Date()))); settingsDialog.close(); render();
 };
 
-if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{})); }
+if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').then(r=>r.update()).catch(()=>{})); }
 render();
