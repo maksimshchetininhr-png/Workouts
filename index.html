@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#111827" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Training" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+  <title>12-Week Training</title>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">12-WEEK PROGRAM</div>
+        <h1 id="pageTitle">Today</h1>
+      </div>
+      <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙︎</button>
+    </header>
+
+    <main id="app"></main>
+
+    <nav class="bottom-nav" aria-label="Primary">
+      <button data-view="today" class="nav-btn active"><span>◉</span><small>Today</small></button>
+      <button data-view="program" class="nav-btn"><span>▦</span><small>Program</small></button>
+      <button data-view="progress" class="nav-btn"><span>↗</span><small>Progress</small></button>
+      <button data-view="backup" class="nav-btn"><span>⇩</span><small>Backup</small></button>
+    </nav>
+  </div>
+
+  <dialog id="settingsDialog">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <h2>Settings</h2>
+        <button class="icon-btn" value="cancel">✕</button>
+      </div>
+      <label>
+        Program start date (Saturday)
+        <input type="date" id="startDateInput" />
+      </label>
+      <label>
+        Chest press starting load (kg)
+        <input type="number" step="0.5" id="chestStartInput" />
+      </label>
+      <label>
+        Row starting DB load / hand (kg)
+        <input type="number" step="0.5" id="rowStartInput" />
+      </label>
+      <div class="dialog-actions">
+        <button class="secondary" value="cancel">Cancel</button>
+        <button id="saveSettingsBtn" class="primary" value="default">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
