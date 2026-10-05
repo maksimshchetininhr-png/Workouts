@@ -1,3 +1,5 @@
+const APP_VERSION = '4.1';
+
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
   logs: 'trainingApp.logs.v1',
@@ -303,7 +305,7 @@ function previousExerciseLog(exerciseName, week, day){
 function progressionFromLast(e, week, day){
   const prev=previousExerciseLog(e.name,week,day); if(!prev)return null;
   const rows=prev.filter(r=>r && (r.weight!=='' || r.reps!=='')); if(!rows.length)return null;
-  const weights=rows.map(r=>Number(r.weight)).filter(Number.isFinite);
+  const weights=rows.map(r=>Number(r.weight)).filter(w=>Number.isFinite(w) && w>0);
   if(!weights.length)return null;
   const lastWeight=weights[0];
   const pains=rows.map(r=>Number(r.pain)).filter(Number.isFinite);
@@ -370,6 +372,69 @@ function baselineSuggestion(e,week){
 }
 function suggestedLoad(e,week,day){ return progressionFromLast(e,week,day) || baselineSuggestion(e,week); }
 function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; }
+
+function isCarryExercise(name){ return /Farmer carry|Suitcase carry/i.test(name); }
+function isChinupExercise(name){ return /chin-up/i.test(name); }
+function perHandFactor(name){
+  if(/Chest-supported DB row|1-arm DB row|DB lateral raise|DB scaption|Hammer curl|Rear-delt raise|DB triceps/i.test(name)) return 2;
+  return 1;
+}
+function weeklyWorkload(week){
+  const bw=profileWeight();
+  const result={tonnage:0, carryKgM:0, totalSets:0, totalReps:0, byExercise:{}};
+  ['sat','sun','wed'].forEach(day=>{
+    const entry=getSessionLog(week,day);
+    Object.entries(entry.exercises||{}).forEach(([name,sets])=>{
+      const ex=result.byExercise[name] ||= {tonnage:0,carryKgM:0,sets:0,reps:0};
+      (sets||[]).forEach(row=>{
+        if(!row) return;
+        const reps=Number(row.reps);
+        if(!Number.isFinite(reps) || reps<=0) return;
+        const rawWeight=Number(row.weight);
+        const hasWeight=Number.isFinite(rawWeight) && rawWeight>0;
+        const factor=perHandFactor(name);
+        ex.sets += 1; result.totalSets += 1;
+        ex.reps += reps; result.totalReps += reps;
+        if(isCarryExercise(name)){
+          if(hasWeight){
+            const sideFactor=/Suitcase carry/i.test(name)?2:1;
+            const work=rawWeight*reps*sideFactor;
+            ex.carryKgM += work; result.carryKgM += work;
+          }
+          return;
+        }
+        let effectiveLoad = hasWeight ? rawWeight : 0;
+        if(isChinupExercise(name)) effectiveLoad = bw + (hasWeight ? rawWeight : 0);
+        if(effectiveLoad>0){
+          const work=effectiveLoad*reps*factor;
+          ex.tonnage += work; result.tonnage += work;
+        }
+      });
+    });
+  });
+  return result;
+}
+function workloadWeeks(){ return Array.from({length:12},(_,i)=>({week:i+1,...weeklyWorkload(i+1)})); }
+function fmtKg(n){ return Math.round(n).toLocaleString(); }
+function workloadTrendHTML(){
+  const rows=workloadWeeks();
+  const hasAny=rows.some(r=>r.tonnage>0 || r.carryKgM>0);
+  if(!hasAny) return `<div class="empty">Log your working sets and weekly workload will appear here.</div>`;
+  const max=Math.max(...rows.map(r=>r.tonnage),1);
+  return `<div class="workload-list">${rows.map((r,i)=>{
+    const prev=i>0?rows[i-1]:null;
+    const change=prev && prev.tonnage>0 && r.tonnage>0 ? ((r.tonnage-prev.tonnage)/prev.tonnage)*100 : null;
+    const width=Math.max(2,(r.tonnage/max)*100);
+    return `<div class="workload-row"><div class="workload-week">W${r.week}</div><div class="workload-main"><div class="workload-bar"><span style="width:${width}%"></span></div><div class="workload-meta"><strong>${r.tonnage>0?fmtKg(r.tonnage)+' kg':'—'}</strong>${change===null?'':`<span class="${change>=0?'up':'down'}">${change>=0?'+':''}${change.toFixed(1)}%</span>`}${r.carryKgM>0?`<span>${fmtKg(r.carryKgM)} kg·m carries</span>`:''}</div></div></div>`;
+  }).join('')}</div>`;
+}
+function latestWorkloadBreakdownHTML(){
+  const rows=workloadWeeks().filter(r=>r.tonnage>0 || r.carryKgM>0);
+  if(!rows.length) return '';
+  const latest=rows[rows.length-1];
+  const items=Object.entries(latest.byExercise).filter(([,v])=>v.tonnage>0 || v.carryKgM>0).sort((a,b)=>(b[1].tonnage+b[1].carryKgM)-(a[1].tonnage+a[1].carryKgM));
+  return `<section class="card"><div class="row between"><h3>Week ${latest.week} breakdown</h3><span class="badge">${latest.totalSets} logged sets</span></div><div class="workload-breakdown">${items.map(([name,v])=>`<div class="breakdown-row"><div><strong>${name}</strong><div class="exercise-meta">${v.sets} sets · ${v.reps} reps${v.carryKgM>0?' / m':''}</div></div><div class="breakdown-value">${v.tonnage>0?fmtKg(v.tonnage)+' kg':fmtKg(v.carryKgM)+' kg·m'}</div></div>`).join('')}</div></section>`;
+}
 
 function sessionGoalsHTML(week, exercises){
   const goals=exercises.map(e=>({name:e.name,goal:goalFor(e,week)})).filter(x=>x.goal);
@@ -461,7 +526,7 @@ function exerciseHTML(week,day,e,index,log){
     <div class="exercise-meta">${e.note}</div>
     ${goalText}${suggestedText}
     <div class="set-grid">
-      <div></div><div class="head">kg</div><div class="head">reps</div><div class="head">RIR</div><div class="head">pain</div>
+      <div></div><div class="head">kg</div><div class="head">${isCarryExercise(e.name)?'m':'reps'}</div><div class="head">RIR</div><div class="head">pain</div>
       ${Array.from({length:e.sets},(_,s)=>{
         const r=saved[s]||{};
         return `<div class="set-num">${s+1}</div>
@@ -510,6 +575,8 @@ function renderProgress(){
   app.innerHTML=`
     <section class="card hero"><div class="muted small">12-WEEK STRENGTH PASSPORT</div><h2 style="margin-top:6px">Make progress visible</h2><p class="muted small">Record benchmarks in Weeks 1, 4, 8 and 12. Clean reps and joint tolerance matter more than maxing out.</p></section>
     <section class="card"><h3>Your current targets</h3><div class="target-grid">${targetSummary().map(t=>`<div class="target-card"><strong>${t.name}</strong><div class="target-value">${t.value}</div><div class="target-note">${t.note}</div></div>`).join('')}</div></section>
+    <section class="card"><div class="row between wrap"><div><h3>Weekly workload</h3><div class="exercise-meta">Rep-based tonnage from your logged sets</div></div><span class="badge">Σ load × reps</span></div>${workloadTrendHTML()}<div class="callout" style="margin-top:12px"><strong>How to use this:</strong> compare the trend mainly within the same cycle and, even better, within the same exercise. DB loads entered per hand are doubled. Chin-ups use bodyweight + added load. Carries are kept separate as kg·m. A higher number is useful only when technique, RIR and joint symptoms stay comparable.</div></section>
+    ${latestWorkloadBreakdownHTML()}
     <section class="card progress-scroll"><table class="progress-table"><thead><tr><th>Benchmark</th><th>Unit</th><th>W1</th><th>W4</th><th>W8</th><th>W12</th></tr></thead><tbody>
       ${benchmarkRows.map(([name,unit])=>`<tr><td>${name}</td><td class="muted">${unit}</td>${[1,4,8,12].map(w=>`<td><input data-bench="${encodeURIComponent(name)}" data-bw="${w}" value="${benchmarks[name]?.[w]??''}"></td>`).join('')}</tr>`).join('')}
     </tbody></table><button id="saveBench" class="primary full" style="margin-top:10px">Save benchmarks</button></section>

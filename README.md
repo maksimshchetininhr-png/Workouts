@@ -1,8 +1,10 @@
-# 12-Week Training App — v3
+# Training App v4.1
+
+# 12-Week Training App — v4
 
 A phone-friendly installable web app (PWA) for the 12-week Saturday / Sunday / Wednesday program.
 
-## v3 changes
+## v4 changes
 - Warm-up is shown inside every workout.
 - Goal exercises are marked with a purple **GOAL** badge and a **Goals this session** card.
 - Each suitable exercise shows a suggested starting load.
@@ -43,3 +45,12 @@ If the installed iPhone app still shows the old version, fully close it and reop
 A known baseline is always preferred. Once workouts are logged, the app uses the previous load, reps, RIR and pain to recommend whether to increase, repeat or reduce the load.
 
 Unknown lifts use conservative calibration loads based mainly on bodyweight. These are intentionally not presented as estimated 1RM/5RM values, because age, height and bodyweight do not predict an individual's lifting strength accurately enough for that.
+
+
+## v4.1
+- Adds weekly workload tracking on the Progress screen.
+- Rep-based tonnage is calculated from logged load x reps.
+- Two-dumbbell/per-hand movements are doubled.
+- Chin-ups use bodyweight plus any added load.
+- Carries are tracked separately in kg-m because distance is the relevant work variable.
+- Shows week-over-week change and the latest week exercise breakdown.
