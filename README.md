@@ -1,4 +1,4 @@
-# Training App v4.1
+# Training App v4.2
 
 # 12-Week Training App — v4
 
@@ -47,10 +47,19 @@ A known baseline is always preferred. Once workouts are logged, the app uses the
 Unknown lifts use conservative calibration loads based mainly on bodyweight. These are intentionally not presented as estimated 1RM/5RM values, because age, height and bodyweight do not predict an individual's lifting strength accurately enough for that.
 
 
-## v4.1
+## v4.2
 - Adds weekly workload tracking on the Progress screen.
 - Rep-based tonnage is calculated from logged load x reps.
 - Two-dumbbell/per-hand movements are doubled.
 - Chin-ups use bodyweight plus any added load.
 - Carries are tracked separately in kg-m because distance is the relevant work variable.
 - Shows week-over-week change and the latest week exercise breakdown.
+
+
+## v4.2 — workout timing and rest timer
+- Tap **Start warm-up** when you begin. The app timestamps the session.
+- Each completed working set is timestamped when its reps/distance and required load are entered.
+- Session duration is measured from warm-up start to the last logged working set; when all prescribed sets are logged it freezes automatically.
+- A rest timer starts automatically after each completed set. Defaults are 3:00 for heavy strength, 2:00–2:30 for compound lifts/carries, 1:30 for accessories and 1:00 for core/prehab.
+- The floating timer supports **+30 sec** and **Skip**.
+- Progress now includes weekly total and average training time.

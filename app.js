@@ -1,9 +1,10 @@
-const APP_VERSION = '4.1';
+const APP_VERSION = '4.2';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
   logs: 'trainingApp.logs.v1',
-  benchmarks: 'trainingApp.benchmarks.v1'
+  benchmarks: 'trainingApp.benchmarks.v1',
+  restTimer: 'trainingApp.restTimer.v1'
 };
 
 const defaultSettings = {
@@ -238,6 +239,9 @@ let benchmarks = loadJSON(STORAGE.benchmarks, {});
 let currentView = 'today';
 let selectedWeek = Math.max(1, Math.min(12, getProgramWeek(new Date())));
 let selectedDay = dayKeyFromDate(new Date()) || 'sat';
+let activeSession = null;
+let timerTickHandle = null;
+let restAlertedFor = null;
 
 const app = document.getElementById('app');
 const pageTitle = document.getElementById('pageTitle');
@@ -281,7 +285,93 @@ function getExercises(week, day){
   return base;
 }
 function logKey(week, day){ return `w${week}-${day}`; }
-function getSessionLog(week, day){ return logs[logKey(week,day)] || {exercises:{}, notes:'', completed:false}; }
+function getSessionLog(week, day){ return logs[logKey(week,day)] || {exercises:{}, notes:'', completed:false, startedAt:null, lastSetAt:null, endedAt:null}; }
+function nowISO(){ return new Date().toISOString(); }
+function formatClock(iso){
+  if(!iso) return '—';
+  return new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit'}).format(new Date(iso));
+}
+function formatDuration(ms){
+  if(!Number.isFinite(ms) || ms < 0) return '—';
+  const total=Math.round(ms/1000), h=Math.floor(total/3600), m=Math.floor((total%3600)/60), sec=total%60;
+  return h>0 ? `${h}:${String(m).padStart(2,'0')}:${String(sec).padStart(2,'0')}` : `${m}:${String(sec).padStart(2,'0')}`;
+}
+function sessionDurationMs(entry, live=true){
+  if(!entry?.startedAt) return null;
+  const end=entry.endedAt || entry.lastSetAt || (live?new Date().toISOString():null);
+  return end ? Math.max(0,new Date(end)-new Date(entry.startedAt)) : null;
+}
+function restSecondsFor(name){
+  if(/Deadlift/i.test(name)) return 180;
+  if(/Weighted \/ strict chin-up/i.test(name)) return 180;
+  if(/Strict chin-up/i.test(name)) return 150;
+  if(/Hip thrust/i.test(name)) return 150;
+  if(/Machine chest press|Chest-supported DB row|1-arm DB row|Seated or cable row|Cable row|Farmer carry|Suitcase carry/i.test(name)) return 120;
+  if(/GHD hip extension|Leg curl|lateral raise|scaption|Hammer curl|Rear-delt|triceps|Cable curl|rear-delt fly/i.test(name)) return 90;
+  return 60;
+}
+function weightOptional(name){
+  return /chin-up|GHD hip extension|Ab wheel|hanging knee raise|Band external rotation|Pallof press/i.test(name);
+}
+function rowIsComplete(name,row){
+  const reps=Number(row?.reps);
+  if(!Number.isFinite(reps) || reps<=0) return false;
+  if(weightOptional(name)) return true;
+  const w=Number(row?.weight);
+  return Number.isFinite(w) && w>0;
+}
+function allSetsComplete(week,day,entry){
+  return getExercises(week,day).every(e=>Array.from({length:e.sets},(_,i)=>rowIsComplete(e.name,entry.exercises?.[e.name]?.[i])).every(Boolean));
+}
+function loadRestTimer(){ return loadJSON(STORAGE.restTimer,null); }
+function saveRestTimer(t){
+  if(t) localStorage.setItem(STORAGE.restTimer,JSON.stringify(t));
+  else localStorage.removeItem(STORAGE.restTimer);
+}
+function startRestTimer(exercise,setIndex,seconds){
+  const t={exercise,setIndex,seconds,startedAt:Date.now(),endsAt:Date.now()+seconds*1000};
+  saveRestTimer(t); restAlertedFor=null; updateRestTimerDock();
+}
+function clearRestTimer(){ saveRestTimer(null); restAlertedFor=null; updateRestTimerDock(); }
+function addRestTime(seconds){
+  const t=loadRestTimer(); if(!t) return;
+  t.endsAt+=seconds*1000; t.seconds+=seconds; saveRestTimer(t); restAlertedFor=null; updateRestTimerDock();
+}
+function updateRestTimerDock(){
+  const dock=document.getElementById('restTimerDock'); if(!dock) return;
+  const t=loadRestTimer();
+  if(!t){ dock.classList.add('hidden'); return; }
+  dock.classList.remove('hidden');
+  const remain=Math.max(0,Math.ceil((t.endsAt-Date.now())/1000));
+  const mm=Math.floor(remain/60), ss=remain%60;
+  const label=document.getElementById('restTimerLabel');
+  const value=document.getElementById('restTimerValue');
+  if(label) label.textContent=`${t.exercise} · after set ${Number(t.setIndex)+1}`;
+  if(value) value.textContent=remain>0?`${mm}:${String(ss).padStart(2,'0')}`:'GO';
+  dock.classList.toggle('done',remain===0);
+  if(remain===0 && restAlertedFor!==t.endsAt){
+    restAlertedFor=t.endsAt;
+    if(navigator.vibrate) navigator.vibrate([160,100,160]);
+  }
+}
+function updateSessionClock(){
+  if(!activeSession) return;
+  const {week,day}=activeSession, entry=getSessionLog(week,day);
+  const elapsed=document.getElementById('sessionElapsed');
+  const detail=document.getElementById('sessionTimeDetail');
+  if(!elapsed || !detail) return;
+  if(!entry.startedAt){ elapsed.textContent='Not started'; detail.textContent='Start when you begin the warm-up.'; return; }
+  const duration=sessionDurationMs(entry,!entry.endedAt);
+  elapsed.textContent=formatDuration(duration);
+  if(entry.endedAt) detail.textContent=`${formatClock(entry.startedAt)}–${formatClock(entry.endedAt)} · final set logged`;
+  else if(entry.lastSetAt) detail.textContent=`Started ${formatClock(entry.startedAt)} · last set ${formatClock(entry.lastSetAt)}`;
+  else detail.textContent=`Started ${formatClock(entry.startedAt)} · warm-up running`;
+}
+function ensureTimerTick(){
+  if(timerTickHandle) clearInterval(timerTickHandle);
+  timerTickHandle=setInterval(()=>{ updateSessionClock(); updateRestTimerDock(); },1000);
+  updateSessionClock(); updateRestTimerDock();
+}
 function roundStep(n, step){ return Math.round(n/step)*step; }
 function numeric(v){ const n=Number(v); return Number.isFinite(n) && n>0 ? n : null; }
 function profileWeight(){ return numeric(settings.profile?.bodyweightKg) || 82; }
@@ -415,6 +505,15 @@ function weeklyWorkload(week){
   return result;
 }
 function workloadWeeks(){ return Array.from({length:12},(_,i)=>({week:i+1,...weeklyWorkload(i+1)})); }
+function weeklyTrainingTime(week){
+  const sessions=['sat','sun','wed'].map(day=>getSessionLog(week,day)).map(entry=>sessionDurationMs(entry,false)).filter(ms=>Number.isFinite(ms) && ms>0);
+  return {totalMs:sessions.reduce((a,b)=>a+b,0), sessions:sessions.length, avgMs:sessions.length?sessions.reduce((a,b)=>a+b,0)/sessions.length:0};
+}
+function trainingTimeHTML(){
+  const rows=Array.from({length:12},(_,i)=>({week:i+1,...weeklyTrainingTime(i+1)}));
+  if(!rows.some(r=>r.sessions)) return `<div class="empty">Start the warm-up timer and log sets to see your training time here.</div>`;
+  return `<div class="time-week-list">${rows.map(r=>`<div class="time-week-row"><strong>W${r.week}</strong><span>${r.sessions?`${formatDuration(r.totalMs)} total · ${formatDuration(r.avgMs)} avg · ${r.sessions} session${r.sessions===1?'':'s'}`:'—'}</span></div>`).join('')}</div>`;
+}
 function fmtKg(n){ return Math.round(n).toLocaleString(); }
 function workloadTrendHTML(){
   const rows=workloadWeeks();
@@ -487,9 +586,14 @@ function renderToday(){
   document.getElementById('openNext').onclick=()=>{ selectedWeek=nw; selectedDay=nd; currentView='program'; render(); };
 }
 
-function warmupHTML(week,day){
+function warmupHTML(week,day,log){
   const list=warmups[cycleForWeek(week)][day];
+  const started=!!log.startedAt;
   return `<div class="section-title">Warm-up · ~8 min</div><section class="card warmup-card">
+    <div class="session-clock">
+      <div><div class="clock-kicker">SESSION TIMER</div><div class="clock-value" id="sessionElapsed">${started?formatDuration(sessionDurationMs(log,!log.endedAt)):'Not started'}</div><div class="exercise-meta" id="sessionTimeDetail">${started?`Started ${formatClock(log.startedAt)}`:'Start when you begin the warm-up.'}</div></div>
+      <div class="clock-actions">${started?`<button type="button" class="secondary compact" id="resetSessionTimer">Reset</button>`:`<button type="button" class="primary compact" id="startSessionTimer">Start warm-up</button>`}</div>
+    </div>
     ${list.map(([n,d],i)=>`<div class="warmup-row"><span class="warmup-num">${i+1}</span><div><strong>${n}</strong><div class="exercise-meta">${d}</div></div></div>`).join('')}
   </section>`;
 }
@@ -501,7 +605,7 @@ function sessionHTML(week,day,isToday=false){
       <div class="row between wrap"><div><div class="muted small">${dateLine} · Cycle ${cycleNo}</div><h2 style="margin-top:5px">${dayLabel(day)} · ${cycle.name}</h2></div><span class="badge ${log.completed?'good':''}">${log.completed?'✓ Completed':'~60 min'}</span></div>
       <p class="muted small" style="margin-bottom:0">${progressionNote(week)}</p>
     </section>
-    ${warmupHTML(week,day)}
+    ${warmupHTML(week,day,log)}
     ${sessionGoalsHTML(week,ex)}
     <div class="section-title">Workout</div>
     <section class="card">
@@ -522,7 +626,7 @@ function exerciseHTML(week,day,e,index,log){
   const suggestedText=suggestion ? `<div class="suggestion ${suggestion.kind==='estimate'?'estimated':''}"><strong>Suggested:</strong> ${suggestion.value!==null?`${suggestion.value} kg · `:''}${suggestion.text}${suggestion.value!==null?`<br><button type="button" class="use-suggestion" data-use-suggestion="${encodeURIComponent(e.name)}" data-suggested="${suggestion.value}">Use ${suggestion.value} kg for all sets</button>`:''}</div>` : '';
   const goalText=goal ? `<div class="goal-strip"><span>🎯</span><div><strong>Working toward</strong><br>${goal}</div></div>` : '';
   return `<div class="exercise">
-    <div class="row between"><div><div class="row wrap" style="gap:6px"><h3>${e.name}</h3>${goal?'<span class="badge goal-badge">GOAL</span>':''}</div><div class="exercise-meta">${e.sets} sets · ${e.reps}</div></div><span class="badge">${index+1}</span></div>
+    <div class="row between"><div><div class="row wrap" style="gap:6px"><h3>${e.name}</h3>${goal?'<span class="badge goal-badge">GOAL</span>':''}</div><div class="exercise-meta">${e.sets} sets · ${e.reps} · <span class="rest-prescription">rest ${Math.floor(restSecondsFor(e.name)/60)}:${String(restSecondsFor(e.name)%60).padStart(2,'0')}</span></div></div><span class="badge">${index+1}</span></div>
     <div class="exercise-meta">${e.note}</div>
     ${goalText}${suggestedText}
     <div class="set-grid">
@@ -539,7 +643,8 @@ function exerciseHTML(week,day,e,index,log){
   </div>`;
 }
 function bindSessionInputs(week,day){
-  const save=()=>{
+  activeSession={week,day};
+  const persistInputs=()=>{
     const key=logKey(week,day); const entry=getSessionLog(week,day); entry.exercises=entry.exercises||{};
     document.querySelectorAll('[data-ex]').forEach(inp=>{
       const ex=decodeURIComponent(inp.dataset.ex), set=Number(inp.dataset.set), field=inp.dataset.field;
@@ -547,17 +652,43 @@ function bindSessionInputs(week,day){
       entry.exercises[ex][set][field]=inp.value;
     });
     entry.notes=document.getElementById('sessionNotes')?.value||'';
-    logs[key]=entry; saveJSON(STORAGE.logs,logs);
+    logs[key]=entry; saveJSON(STORAGE.logs,logs); return entry;
   };
+  const registerSetIfComplete=(inp)=>{
+    const entry=persistInputs();
+    const ex=decodeURIComponent(inp.dataset.ex), set=Number(inp.dataset.set);
+    const row=entry.exercises?.[ex]?.[set];
+    if(!rowIsComplete(ex,row) || row.completedAt) return;
+    const stamp=nowISO(); row.completedAt=stamp;
+    if(!entry.startedAt){ entry.startedAt=stamp; toast('Session timer started now — warm-up time was not captured'); }
+    entry.lastSetAt=stamp;
+    const finished=allSetsComplete(week,day,entry);
+    if(finished){ entry.endedAt=stamp; clearRestTimer(); toast(`Final set logged · ${formatDuration(sessionDurationMs(entry,false))}`); }
+    else { entry.endedAt=null; startRestTimer(ex,set,restSecondsFor(ex)); }
+    logs[logKey(week,day)]=entry; saveJSON(STORAGE.logs,logs); updateSessionClock();
+  };
+  document.querySelectorAll('[data-ex]').forEach(inp=>inp.addEventListener('change',()=>registerSetIfComplete(inp)));
   document.querySelectorAll('[data-use-suggestion]').forEach(btn=>btn.onclick=()=>{
     const ex=btn.dataset.useSuggestion; const v=btn.dataset.suggested;
     document.querySelectorAll(`[data-ex="${ex}"][data-field="weight"]`).forEach(inp=>{ if(!inp.value) inp.value=v; });
-    toast(`Suggested ${v} kg filled in`);
+    persistInputs(); toast(`Suggested ${v} kg filled in`);
   });
-  document.getElementById('saveSession').onclick=()=>{ save(); toast('Workout saved'); };
-  document.getElementById('toggleComplete').onclick=()=>{ save(); const key=logKey(week,day); logs[key].completed=!logs[key].completed; saveJSON(STORAGE.logs,logs); render(); };
+  const startBtn=document.getElementById('startSessionTimer');
+  if(startBtn) startBtn.onclick=()=>{
+    const entry=persistInputs(); entry.startedAt=nowISO(); entry.lastSetAt=null; entry.endedAt=null;
+    logs[logKey(week,day)]=entry; saveJSON(STORAGE.logs,logs); render(); toast('Workout timer started');
+  };
+  const resetBtn=document.getElementById('resetSessionTimer');
+  if(resetBtn) resetBtn.onclick=()=>{
+    if(!confirm('Reset this session timer and set timestamps? Your weights/reps will stay.')) return;
+    const entry=persistInputs(); entry.startedAt=null; entry.lastSetAt=null; entry.endedAt=null;
+    Object.values(entry.exercises||{}).forEach(sets=>(sets||[]).forEach(r=>{ if(r) delete r.completedAt; }));
+    logs[logKey(week,day)]=entry; saveJSON(STORAGE.logs,logs); clearRestTimer(); render();
+  };
+  document.getElementById('saveSession').onclick=()=>{ persistInputs(); toast('Workout saved'); };
+  document.getElementById('toggleComplete').onclick=()=>{ const entry=persistInputs(); entry.completed=!entry.completed; if(entry.completed && entry.startedAt && entry.lastSetAt) entry.endedAt=entry.lastSetAt; if(!entry.completed) entry.endedAt=null; logs[logKey(week,day)]=entry; saveJSON(STORAGE.logs,logs); if(entry.completed) clearRestTimer(); render(); };
+  ensureTimerTick();
 }
-
 function renderProgram(){
   pageTitle.textContent='Program';
   app.innerHTML = `
@@ -576,6 +707,7 @@ function renderProgress(){
     <section class="card hero"><div class="muted small">12-WEEK STRENGTH PASSPORT</div><h2 style="margin-top:6px">Make progress visible</h2><p class="muted small">Record benchmarks in Weeks 1, 4, 8 and 12. Clean reps and joint tolerance matter more than maxing out.</p></section>
     <section class="card"><h3>Your current targets</h3><div class="target-grid">${targetSummary().map(t=>`<div class="target-card"><strong>${t.name}</strong><div class="target-value">${t.value}</div><div class="target-note">${t.note}</div></div>`).join('')}</div></section>
     <section class="card"><div class="row between wrap"><div><h3>Weekly workload</h3><div class="exercise-meta">Rep-based tonnage from your logged sets</div></div><span class="badge">Σ load × reps</span></div>${workloadTrendHTML()}<div class="callout" style="margin-top:12px"><strong>How to use this:</strong> compare the trend mainly within the same cycle and, even better, within the same exercise. DB loads entered per hand are doubled. Chin-ups use bodyweight + added load. Carries are kept separate as kg·m. A higher number is useful only when technique, RIR and joint symptoms stay comparable.</div></section>
+    <section class="card"><div class="row between wrap"><div><h3>Training time</h3><div class="exercise-meta">Warm-up start → last logged working set</div></div><span class="badge">⏱ automatic</span></div>${trainingTimeHTML()}</section>
     ${latestWorkloadBreakdownHTML()}
     <section class="card progress-scroll"><table class="progress-table"><thead><tr><th>Benchmark</th><th>Unit</th><th>W1</th><th>W4</th><th>W8</th><th>W12</th></tr></thead><tbody>
       ${benchmarkRows.map(([name,unit])=>`<tr><td>${name}</td><td class="muted">${unit}</td>${[1,4,8,12].map(w=>`<td><input data-bench="${encodeURIComponent(name)}" data-bw="${w}" value="${benchmarks[name]?.[w]??''}"></td>`).join('')}</tr>`).join('')}
@@ -595,7 +727,7 @@ function renderBackup(){
       <button id="exportBtn" class="primary full">Export backup (.json)</button>
       <label class="secondary full" style="display:block;text-align:center;margin-top:10px">Import backup<input id="importInput" type="file" accept="application/json" hidden></label>
     </section>
-    <section class="card"><h3>How suggestions work</h3><p class="muted small">Known baselines are used first. After you log sessions, the app uses your previous load, reps, RIR and pain to suggest whether to hold, progress, or reduce. Unknown strength movements use conservative bodyweight-based calibration loads rather than pretending age/height can predict your strength; machine stacks use RIR calibration.</p></section>
+    <section class="card"><h3>How suggestions work</h3><p class="muted small">Known baselines are used first. After you log sessions, the app uses your previous load, reps, RIR and pain to suggest whether to hold, progress, or reduce. Unknown strength movements use conservative bodyweight-based calibration loads rather than pretending age/height can predict your strength; machine stacks use RIR calibration.</p></section><section class="card"><h3>Automatic rest timer</h3><p class="muted small">The timer starts as soon as a working set has enough data to count as completed. Defaults: 3:00 for heavy strength, 2:00–2:30 for compound lifts/carries, 1:30 for accessories and 1:00 for core/prehab. Use +30 s whenever you are not ready to repeat the target performance with good technique.</p></section>
     <section class="card"><h3>Install on iPhone</h3><ol class="muted small" style="padding-left:20px;line-height:1.6"><li>Open the hosted app in Safari.</li><li>Tap Share.</li><li>Choose <strong>Add to Home Screen</strong>.</li></ol><p class="muted small">Once installed and opened once online, the app is cached for offline use.</p></section>
     <section class="card"><button id="resetBtn" class="danger-btn full">Reset all app data</button></section>`;
   document.getElementById('exportBtn').onclick=exportBackup;
@@ -610,7 +742,7 @@ function importBackup(ev){
   const file=ev.target.files?.[0]; if(!file)return; const reader=new FileReader(); reader.onload=()=>{ try{ const d=JSON.parse(reader.result); settings=deepSettings(d.settings); logs=d.logs||{}; benchmarks=d.benchmarks||{}; saveJSON(STORAGE.settings,settings); saveJSON(STORAGE.logs,logs); saveJSON(STORAGE.benchmarks,benchmarks); toast('Backup imported'); render(); }catch{ alert('Could not read this backup file.'); } }; reader.readAsText(file);
 }
 function toast(msg){
-  const t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:92px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:999px;font-weight:800;font-size:12px;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.2)'; document.body.appendChild(t); setTimeout(()=>t.remove(),1400);
+  const t=document.createElement('div'); t.textContent=msg; t.style.cssText='position:fixed;left:50%;bottom:165px;transform:translateX(-50%);background:#111827;color:#fff;padding:10px 14px;border-radius:999px;font-weight:800;font-size:12px;z-index:30;box-shadow:0 10px 30px rgba(0,0,0,.2)'; document.body.appendChild(t); setTimeout(()=>t.remove(),1400);
 }
 
 function updateBaselineHints(){
@@ -647,5 +779,10 @@ document.getElementById('saveSettingsBtn').onclick=(e)=>{
   saveJSON(STORAGE.settings,settings); selectedWeek=Math.max(1,Math.min(12,getProgramWeek(new Date()))); settingsDialog.close(); render();
 };
 
+document.getElementById('restTimerAdd')?.addEventListener('click',()=>addRestTime(30));
+document.getElementById('restTimerSkip')?.addEventListener('click',()=>clearRestTimer());
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ updateRestTimerDock(); updateSessionClock(); } });
+window.addEventListener('focus',()=>{ updateRestTimerDock(); updateSessionClock(); });
 if('serviceWorker' in navigator){ window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').then(r=>r.update()).catch(()=>{})); }
 render();
+ensureTimerTick();

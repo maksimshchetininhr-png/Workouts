@@ -7,22 +7,32 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Training" />
-  <link rel="manifest" href="manifest.webmanifest?v=4.1" />
+  <link rel="manifest" href="manifest.webmanifest?v=4.2" />
   <link rel="apple-touch-icon" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=4.1" />
+  <link rel="stylesheet" href="styles.css?v=4.2" />
   <title>12-Week Training</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow-row"><div class="eyebrow">12-WEEK PROGRAM</div><span class="version-badge" id="appVersion">v4.1</span></div>
+        <div class="eyebrow-row"><div class="eyebrow">12-WEEK PROGRAM</div><span class="version-badge" id="appVersion">v4.2</span></div>
         <h1 id="pageTitle">Today</h1>
       </div>
       <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙︎</button>
     </header>
 
     <main id="app"></main>
+
+    <aside id="restTimerDock" class="rest-timer-dock hidden" aria-live="polite">
+      <div class="rest-timer-copy">
+        <div class="rest-timer-kicker">REST TIMER</div>
+        <div id="restTimerLabel" class="rest-timer-label">Set complete</div>
+      </div>
+      <div id="restTimerValue" class="rest-timer-value">2:00</div>
+      <button id="restTimerAdd" class="rest-mini-btn" type="button">+30</button>
+      <button id="restTimerSkip" class="rest-mini-btn" type="button">Skip</button>
+    </aside>
 
     <nav class="bottom-nav" aria-label="Primary">
       <button data-view="today" class="nav-btn active"><span>◉</span><small>Today</small></button>
@@ -63,12 +73,12 @@
       </div>
       <div class="dialog-actions">
         <button class="secondary" value="cancel">Cancel</button>
-        <span class="settings-version">App version <strong>v4.1</strong></span>
+        <span class="settings-version">App version <strong>v4.2</strong></span>
         <button id="saveSettingsBtn" class="primary" value="default">Save</button>
       </div>
     </form>
   </dialog>
 
-  <script src="app.js?v=4.1"></script>
+  <script src="app.js?v=4.2"></script>
 </body>
 </html>
