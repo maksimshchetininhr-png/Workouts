@@ -1,31 +1,6 @@
-# Training App v4.4
-
-# 12-Week Training App — v4
+# 12-Week Training App v5.0
 
 A phone-friendly installable web app (PWA) for the 12-week Saturday / Sunday / Wednesday program.
-
-## v4 changes
-- Warm-up is shown inside every workout.
-- Goal exercises are marked with a purple **GOAL** badge and a **Goals this session** card.
-- Each suitable exercise shows a suggested starting load.
-- Tap **Use X kg for all sets** to pre-fill the weight column.
-- Suggestions use your saved baseline first, then your previous workout results.
-- If a baseline is unknown, the app uses a conservative bodyweight-based *calibration load* rather than treating demographic averages as your true strength.
-- Progress now shows live goal cards for chin-ups, deadlift, farmer carries and machine chest press.
-- Offline cache bumped to v3 so updated GitHub Pages files replace the older app more reliably.
-
-## Current known baselines preloaded
-- Age: 36
-- Height: 181 cm
-- Bodyweight: 82 kg
-- Strict chin-up max: 8 clean reps (editable)
-- Machine chest press: 35 kg
-- Chest-supported DB row: 16 kg per hand
-- Lateral raise: 4 kg per hand
-- Scaption: 4 kg per hand
-- Hammer curl: 10 kg per hand
-
-Deadlift, hip thrust and farmer carry are left blank so the app gives a conservative first-session calibration suggestion until you enter your approximate real baseline.
 
 ## Update your GitHub Pages app
 Upload/replace these files in the root of the `Workouts` repository:
@@ -36,42 +11,57 @@ Upload/replace these files in the root of the `Workouts` repository:
 - `service-worker.js`
 - `icon-192.png`
 - `icon-512.png`
+- `apple-touch-icon.png` (new)
 
-Commit the changes. GitHub Pages should redeploy automatically.
+You can delete the old `*.bak_v4` files and `icon.svg` from the repo; they aren't used.
 
-If the installed iPhone app still shows the old version, fully close it and reopen it once while online. If needed, open the GitHub Pages URL in Safari and refresh once; the v3 service worker is configured to fetch the latest page on navigation.
+Your logged workouts, benchmarks and settings carry over automatically (same storage as v4).
+Still, export a backup from v4.4 before updating, just in case.
+
+After committing, open the app once while online. From v5.0 on, the app always checks for the latest files when you're online, so future updates appear on the next open.
+
+To release a future version, change only `APP_VERSION` at the top of `app.js`.
+
+## v5.0 changes
+
+### Fixes
+- iPhone no longer zooms in when you tap a set field (inputs are 16px).
+- Deload weeks (4, 8, 12) now suggest about 85% of your last load instead of repeating it.
+- The week after a deload builds on your last normal week, not the lighter deload week.
+- The rest timer beeps and flashes the screen when rest is over (iPhone doesn't support vibration). The screen stays awake while a session is running. Both can be turned off in Settings.
+- "Reset all app data" only deletes this app's data, not other apps on the same GitHub Pages site.
+- Pain-based reductions now work for light dumbbells too (e.g. 4 kg → 3 kg).
+
+### Workout flow
+- Every set shows grey targets (load and reps) from your suggestion and last session. Tap ✓ to log them in one tap, or type your own numbers.
+- Entering a load copies it down as the target for the next sets.
+- One exercise is open at a time. Finished exercises collapse to a summary line (e.g. "4/4 · 37.5 kg × 11, 10, 10, 10") and the next one opens.
+- Session timer and a sets-done progress bar sit in the session header. The warm-up list collapses once you start.
+- "Save workout" and "Mark completed" are replaced by **Finish workout**, which shows a summary: time, sets, volume vs last week and new bests.
+- Notes save as you type.
+- Pain of 3 or more is highlighted with a reminder of the pain rule.
+
+### Schedule changes
+- **Switch session** on Today lets you do any session today (for example Saturday's on a Friday). Today shows it for the rest of the day.
+- Rest days have **Train today instead**.
+- Missed sessions from the last 10 days are listed on Today with a "Do today" button.
+
+### Screens
+- New **History** tab: every logged session with date, sets, time and volume. Tap one to open it.
+- Backup, import, reset and the help texts moved into Settings.
+- Progress: lift trend charts per main lift, weekly volume and time combined (only weeks with data, deloads marked), benchmarks as autosaving cards.
+- Each day has its own name (e.g. "Wednesday · Press + Hips") instead of the cycle name.
+- Goals appear once per session instead of three times. Load suggestions are a compact box that hides once you start logging that exercise.
+- Technique videos are shown as "Technique video" chips under each exercise.
+- Automatic dark mode, SVG icons, and a backup reminder on Today when your last backup is more than 14 days old.
 
 ## Baseline logic
-A known baseline is always preferred. Once workouts are logged, the app uses the previous load, reps, RIR and pain to recommend whether to increase, repeat or reduce the load.
+A known baseline is always preferred. Once workouts are logged, the app uses your previous load, reps, RIR and pain to recommend adding load, repeating it, or reducing it.
 
-Unknown lifts use conservative calibration loads based mainly on bodyweight. These are intentionally not presented as estimated 1RM/5RM values, because age, height and bodyweight do not predict an individual's lifting strength accurately enough for that.
+Unknown lifts use conservative calibration loads based mainly on bodyweight. They're deliberately not shown as estimated 1RM/5RM values, because age, height and bodyweight don't predict an individual's strength accurately enough.
 
-
-## v4.3
-- Adds weekly workload tracking on the Progress screen.
-- Rep-based tonnage is calculated from logged load x reps.
-- Two-dumbbell/per-hand movements are doubled.
-- Chin-ups use bodyweight plus any added load.
-- Carries are tracked separately in kg-m because distance is the relevant work variable.
-- Shows week-over-week change and the latest week exercise breakdown.
-
-
-## v4.2 — workout timing and rest timer
-- Tap **Start warm-up** when you begin. The app timestamps the session.
-- Each completed working set is timestamped when its reps/distance and required load are entered.
-- Session duration is measured from warm-up start to the last logged working set; when all prescribed sets are logged it freezes automatically.
-- A rest timer starts automatically after each completed set. Defaults are 3:00 for heavy strength, 2:00–2:30 for compound lifts/carries, 1:30 for accessories and 1:00 for core/prehab.
-- The floating timer supports **+30 sec** and **Skip**.
-- Progress now includes weekly total and average training time.
-
-
-## v4.3
-- Replaced the app icon/logo with the selected cropped aurora mountain image for the home-screen icon and PWA icons.
-- Bumped visible version and cache version so the update is easier to verify and refresh.
-
-
-## v4.4 — movement demo links
-- Every programmed warm-up movement and workout exercise now has a clickable technique/demo link.
-- Tap the exercise name or the small play icon to open its demo.
-- Combined movements (for example Ab wheel / hanging knee raise) show separate video choices.
-- Links were curated from sources including CrossFit, Concept2, Renaissance Periodization, Bret Contreras, Catalyst Athletics, PureGym and other exercise-demo libraries.
+## Earlier versions
+- v4.4: technique demo links for every movement.
+- v4.3: weekly workload tracking; new aurora mountain icon.
+- v4.2: session timing and automatic rest timer.
+- v4: warm-ups in every workout, goal badges, suggested starting loads, live goal cards.

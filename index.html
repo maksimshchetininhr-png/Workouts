@@ -3,82 +3,146 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <meta name="theme-color" content="#111827" />
+  <meta name="theme-color" content="#f3f5f8" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#0a0e15" media="(prefers-color-scheme: dark)" />
+  <meta name="color-scheme" content="light dark" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Training" />
-  <link rel="manifest" href="manifest.webmanifest?v=4.4" />
-  <link rel="apple-touch-icon" href="icon-192.png" />
-  <link rel="stylesheet" href="styles.css?v=4.4" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png" />
+  <link rel="stylesheet" href="styles.css" />
   <title>12-Week Training</title>
 </head>
 <body>
   <div class="app-shell">
     <header class="topbar">
       <div>
-        <div class="eyebrow-row"><div class="eyebrow">12-WEEK PROGRAM</div><span class="version-badge" id="appVersion">v4.4</span></div>
+        <div class="eyebrow-row"><div class="eyebrow">12-WEEK PROGRAM</div><span class="version-badge" data-app-version></span></div>
         <h1 id="pageTitle">Today</h1>
       </div>
-      <button id="settingsBtn" class="icon-btn" aria-label="Settings">⚙︎</button>
+      <button id="settingsBtn" class="icon-btn" aria-label="Settings and backup">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 7h9M17 7h3M4 12h3M11 12h9M4 17h11M19 17h1"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="17" r="2"/></svg>
+      </button>
     </header>
 
     <main id="app"></main>
 
     <aside id="restTimerDock" class="rest-timer-dock hidden" aria-live="polite">
+      <div class="rest-timer-progress"><span id="restTimerBar"></span></div>
       <div class="rest-timer-copy">
-        <div class="rest-timer-kicker">REST TIMER</div>
+        <div class="rest-timer-kicker">REST</div>
         <div id="restTimerLabel" class="rest-timer-label">Set complete</div>
       </div>
       <div id="restTimerValue" class="rest-timer-value">2:00</div>
-      <button id="restTimerAdd" class="rest-mini-btn" type="button">+30</button>
+      <button id="restTimerAdd" class="rest-mini-btn" type="button">+30s</button>
       <button id="restTimerSkip" class="rest-mini-btn" type="button">Skip</button>
     </aside>
 
     <nav class="bottom-nav" aria-label="Primary">
-      <button data-view="today" class="nav-btn active"><span>◉</span><small>Today</small></button>
-      <button data-view="program" class="nav-btn"><span>▦</span><small>Program</small></button>
-      <button data-view="progress" class="nav-btn"><span>↗</span><small>Progress</small></button>
-      <button data-view="backup" class="nav-btn"><span>⇩</span><small>Backup</small></button>
+      <button data-view="today" class="nav-btn active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><circle cx="12" cy="15.2" r="1.7" fill="currentColor" stroke="none"/></svg>
+        <small>Today</small></button>
+      <button data-view="program" class="nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="1.8"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="1.8"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.8"/></svg>
+        <small>Program</small></button>
+      <button data-view="progress" class="nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 17.5l5.5-5.5 4 4 7.5-7.5"/><path d="M15 8.5h5.5V14"/></svg>
+        <small>Progress</small></button>
+      <button data-view="history" class="nav-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>
+        <small>History</small></button>
     </nav>
   </div>
 
   <dialog id="settingsDialog">
     <form method="dialog" class="dialog-card">
       <div class="dialog-head">
-        <h2>Settings & baselines</h2>
-        <button class="icon-btn" value="cancel">✕</button>
+        <h2 tabindex="-1" autofocus>Settings</h2>
+        <button class="icon-btn" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
       </div>
       <div class="dialog-scroll">
-        <label>Program start date (Saturday)<input type="date" id="startDateInput" /></label>
+        <div class="settings-section">Program</div>
+        <label>Start date (a Saturday)<input type="date" id="startDateInput" /></label>
+
         <div class="settings-section">Profile</div>
         <div class="three-grid">
-          <label>Age<input type="number" id="ageInput" /></label>
-          <label>Height cm<input type="number" id="heightInput" /></label>
-          <label>Weight kg<input type="number" step="0.1" id="bodyweightInput" /></label>
+          <label>Age<input type="number" inputmode="numeric" id="ageInput" /></label>
+          <label>Height cm<input type="number" inputmode="numeric" id="heightInput" /></label>
+          <label>Weight kg<input type="number" inputmode="decimal" step="0.1" id="bodyweightInput" /></label>
         </div>
-        <p class="muted small">Enter the lifts you roughly know. If something is blank, the app uses a conservative calibration load based mainly on bodyweight and then adapts from your logged reps, RIR and pain. Age/height alone are not reliable enough to predict an individual strength level.</p>
+
         <div class="settings-section">Strength baselines</div>
-        <label>Deadlift — comfortable 5RM (kg)<input type="number" step="2.5" id="deadliftBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="deadliftAutoHint"></span></label>
-        <label>Strict chin-up — max clean reps<input type="number" id="chinupBaselineInput" /><span class="field-hint" id="chinupAutoHint"></span></label>
-        <label>Machine chest press — current 8–12RM / working load (kg)<input type="number" step="0.5" id="chestBaselineInput" /></label>
-        <label>Chest-supported DB row — kg per hand<input type="number" step="0.5" id="rowBaselineInput" /></label>
-        <label>Hip thrust — current 8–10RM (kg)<input type="number" step="2.5" id="hipThrustBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="hipAutoHint"></span></label>
-        <label>Farmer carry 40 m — total load (kg)<input type="number" step="2.5" id="farmerBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="farmerAutoHint"></span></label>
-        <div class="settings-section">Accessory baselines</div>
+        <p class="field-hint">Enter the lifts you roughly know. Blank lifts get a conservative bodyweight-based calibration load, then the app adapts from your logged reps, RIR and pain.</p>
+        <label>Deadlift: comfortable 5RM (kg)<input type="number" inputmode="decimal" step="2.5" id="deadliftBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="deadliftAutoHint"></span></label>
+        <label>Strict chin-up: max clean reps<input type="number" inputmode="numeric" id="chinupBaselineInput" /><span class="field-hint" id="chinupAutoHint"></span></label>
+        <label>Machine chest press: 8–12RM working load (kg)<input type="number" inputmode="decimal" step="0.5" id="chestBaselineInput" /></label>
+        <label>Chest-supported DB row: kg per hand<input type="number" inputmode="decimal" step="0.5" id="rowBaselineInput" /></label>
+        <label>Hip thrust: 8–10RM (kg)<input type="number" inputmode="decimal" step="2.5" id="hipThrustBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="hipAutoHint"></span></label>
+        <label>Farmer carry 40 m: total load (kg)<input type="number" inputmode="decimal" step="2.5" id="farmerBaselineInput" placeholder="Leave blank to calibrate" /><span class="field-hint" id="farmerAutoHint"></span></label>
+
+        <div class="settings-section">Accessory baselines (kg per hand)</div>
         <div class="three-grid">
-          <label>Lateral kg/hand<input type="number" step="0.5" id="lateralBaselineInput" /></label>
-          <label>Scaption kg/hand<input type="number" step="0.5" id="scaptionBaselineInput" /></label>
-          <label>Hammer kg/hand<input type="number" step="0.5" id="hammerBaselineInput" /></label>
+          <label>Lateral raise<input type="number" inputmode="decimal" step="0.5" id="lateralBaselineInput" /></label>
+          <label>Scaption<input type="number" inputmode="decimal" step="0.5" id="scaptionBaselineInput" /></label>
+          <label>Hammer curl<input type="number" inputmode="decimal" step="0.5" id="hammerBaselineInput" /></label>
         </div>
+
+        <div class="settings-section">During a workout</div>
+        <label class="toggle-row"><span>Rest timer sound<small>Beeps when rest is over. The iPhone silent switch mutes it; the screen flashes either way.</small></span><input type="checkbox" id="soundPref" /></label>
+        <label class="toggle-row"><span>Keep screen awake<small>Stops the phone locking while a session timer is running.</small></span><input type="checkbox" id="wakePref" /></label>
+
+        <div class="settings-section">Data & backup</div>
+        <p class="field-hint" id="backupStatus"></p>
+        <div class="button-stack">
+          <button type="button" id="exportBtn" class="primary full">Export backup</button>
+          <label class="secondary full file-btn">Import backup<input id="importInput" type="file" accept="application/json,.json" hidden /></label>
+        </div>
+
+        <div class="settings-section">About</div>
+        <details class="about">
+          <summary>How load suggestions work</summary>
+          <p>Known baselines are used first. Once you log a lift, the app looks at your last non-deload session: it suggests adding load when every set hit the top of the rep range with reps to spare, repeating otherwise, and dropping about 10% if pain went above 2/10. Deload weeks use about 85% of your last load. Machine stacks are calibrated by RIR.</p>
+        </details>
+        <details class="about">
+          <summary>Rest timer</summary>
+          <p>The timer starts when a set has its reps (and load, where needed). Defaults: 3:00 heavy strength, 2:00–2:30 compound lifts and carries, 1:30 accessories, 1:00 core and prehab. Tap +30s whenever you're not ready to repeat the set with good technique.</p>
+        </details>
+        <details class="about">
+          <summary>Install on iPhone</summary>
+          <p>Open the app in Safari, tap Share, then Add to Home Screen. Open it once while online and it works offline after that.</p>
+        </details>
+
+        <div class="danger-zone"><button type="button" id="resetBtn" class="danger-btn full">Reset all app data</button></div>
       </div>
       <div class="dialog-actions">
+        <span class="settings-version">App <strong data-app-version></strong></span>
         <button class="secondary" value="cancel">Cancel</button>
-        <span class="settings-version">App version <strong>v4.4</strong></span>
         <button id="saveSettingsBtn" class="primary" value="default">Save</button>
       </div>
     </form>
   </dialog>
 
-  <script src="app.js?v=4.4"></script>
+  <dialog id="chooserDialog" class="sheet">
+    <form method="dialog" class="dialog-card">
+      <div class="dialog-head">
+        <h2 tabindex="-1" autofocus>Choose a session</h2>
+        <button class="icon-btn" value="cancel" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+      <p class="field-hint" style="margin-top:-6px">It will show on Today for the rest of the day.</p>
+      <div class="chooser-list"></div>
+    </form>
+  </dialog>
+
+  <dialog id="summaryDialog" class="sheet">
+    <form method="dialog" class="dialog-card">
+      <div class="summary-body" tabindex="-1" autofocus style="outline:none"></div>
+      <button class="primary full" value="ok" style="margin-top:16px">Done</button>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
 </body>
 </html>
