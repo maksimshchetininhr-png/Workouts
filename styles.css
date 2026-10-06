@@ -163,3 +163,12 @@ dialog::backdrop { background:rgba(17,24,39,.5); backdrop-filter:blur(4px); }
   .rest-timer-value { min-width:52px; font-size:22px; }
   .rest-mini-btn { padding:7px 7px; }
 }
+
+
+/* v4.4: movement technique video links */
+.movement-link { color:inherit; text-decoration:none; display:inline-flex; align-items:center; gap:6px; border-radius:8px; -webkit-tap-highlight-color:transparent; }
+.movement-link:active { opacity:.62; }
+.video-indicator { display:inline-grid; place-items:center; width:20px; height:20px; border-radius:999px; background:#e0f2fe; color:#0369a1; font-size:9px; line-height:1; flex:0 0 auto; }
+.warmup-card .movement-link { font-weight:800; }
+.movement-alt-videos { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:6px; font-size:11px; color:var(--muted); }
+.movement-alt-videos a { text-decoration:none; color:#0369a1; background:#e0f2fe; padding:4px 7px; border-radius:999px; font-weight:800; }

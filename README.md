@@ -1,4 +1,4 @@
-# Training App v4.3
+# Training App v4.4
 
 # 12-Week Training App — v4
 
@@ -68,3 +68,10 @@ Unknown lifts use conservative calibration loads based mainly on bodyweight. The
 ## v4.3
 - Replaced the app icon/logo with the selected cropped aurora mountain image for the home-screen icon and PWA icons.
 - Bumped visible version and cache version so the update is easier to verify and refresh.
+
+
+## v4.4 — movement demo links
+- Every programmed warm-up movement and workout exercise now has a clickable technique/demo link.
+- Tap the exercise name or the small play icon to open its demo.
+- Combined movements (for example Ab wheel / hanging knee raise) show separate video choices.
+- Links were curated from sources including CrossFit, Concept2, Renaissance Periodization, Bret Contreras, Catalyst Athletics, PureGym and other exercise-demo libraries.

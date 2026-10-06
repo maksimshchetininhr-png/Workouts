@@ -1,4 +1,4 @@
-const APP_VERSION = '4.3';
+const APP_VERSION = '4.4';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -209,6 +209,83 @@ const goalMap = {
     'Hip thrust': 'Secondary goal: progress a strong 6–10 rep hip-extension pattern while the knee stays calm.'
   }
 };
+
+// v4.4: curated movement demo links. Exercise names open the primary demo;
+// movements with more than one programmed option also expose alternate demo links.
+const movementVideos = {
+  'BikeErg / easy bike': [{label:'BikeErg setup', url:'https://www.youtube.com/watch?v=xWE5Q_NljyY'}],
+  'Hip hinge drill': [{label:'Hip hinge drill', url:'https://www.youtube.com/watch?v=EK0P-9nIECY'}],
+  'Band external rotation': [{label:'Band external rotation', url:'https://www.youtube.com/watch?v=aePkwVQ1yLw'}],
+  'Scapular pull-up': [{label:'Scapular pull-up', url:'https://www.wodbuilders.com/en/exercises/scapular-pull-up'}],
+  'Deadlift': [{label:'Deadlift technique', url:'https://www.youtube.com/watch?v=MBbyAqvTNkU'}],
+  'Serratus wall slide': [{label:'Serratus wall slide', url:'https://fit-pro.com/videos-450-Functionally-Fit-Serratus-Wall-Slide.html'}],
+  'GHD hip extension': [{label:'GHD hip extension', url:'https://www.youtube.com/watch?v=yCoUpLutVo8'}],
+  'Chest-supported DB row': [{label:'Chest-supported row', url:'https://www.youtube.com/watch?v=0UBRfiO4zDs'}],
+  'Machine chest press': [{label:'Machine chest press', url:'https://www.youtube.com/watch?v=NwzUje3z0qY'}],
+  'Bodyweight glute bridge': [{label:'Glute bridge demos', url:'https://bretcontreras.com/the-evolution-of-the-hip-thrust/'}],
+  'DB lateral raise': [{label:'DB lateral raise', url:'https://www.youtube.com/watch?v=4hTUCDUQaNA'}],
+  'DB scaption': [{label:'DB scaption', url:'https://tigerfitness.com/blogs/exercise-database/dumbbell-scaption'}],
+  'Cable lateral raise': [{label:'Cable lateral raise', url:'https://www.youtube.com/watch?v=lq7eLC30b9w'}],
+  'Hip thrust': [{label:'Hip thrust', url:'https://www.youtube.com/watch?v=zbcGIPsNO6g'}],
+  'Strict chin-up': [{label:'Strict pull/chin-up', url:'https://www.youtube.com/watch?v=HRV5YKKaeVw'}],
+  'Farmer carry': [{label:'Farmer carry', url:'https://www.youtube.com/watch?v=lLAw6fUccKA'}],
+  'Hammer curl': [{label:'Hammer curl', url:'https://www.youtube.com/watch?v=XOEL4MgekYE'}],
+  'Ab wheel': [{label:'Ab wheel', url:'https://www.youtube.com/watch?v=OJIWMlLa38Q'}],
+  'Hanging knee raise': [{label:'Hanging knee raise', url:'https://support.runna.com/en/articles/6376285-hanging-knee-raise-exercise-tutorial'}],
+  'Seated or cable row': [{label:'Seated cable row', url:'https://www.youtube.com/watch?v=UCXxvVItLoM'}],
+  'Leg curl': [{label:'Leg curl', url:'https://www.youtube.com/watch?v=jobEeklwrrs'}],
+  'Cable triceps pushdown': [{label:'Cable triceps pushdown', url:'https://www.youtube.com/watch?v=_w-HpW70nSQ'}],
+  'Pallof press': [{label:'Pallof press', url:'https://www.youtube.com/watch?v=HXrLaqNIkTs'}],
+  'Rear-delt raise': [{label:'Rear-delt raise', url:'https://www.youtube.com/watch?v=a2S4pCIVZGw'}],
+  'DB triceps extension / kickback': [
+    {label:'DB triceps extension', url:'https://www.youtube.com/watch?v=k0OT0xqAXJs'},
+    {label:'DB triceps kickback', url:'https://www.youtube.com/watch?v=dnyUwaA7Pok'}
+  ],
+  'Band triceps pressdown': [{label:'Band triceps pressdown', url:'https://www.youtube.com/watch?v=Tz-eIqfB-1Y'}],
+  'Cable rear-delt fly': [{label:'Cable rear-delt fly', url:'https://www.youtube.com/watch?v=ATSjVXoOgVg'}],
+  'Cable curl': [{label:'Cable curl', url:'https://www.youtube.com/watch?v=ra-Kxl5JmUU'}],
+  'Weighted / strict chin-up': [
+    {label:'Weighted chin-up', url:'https://www.youtube.com/watch?v=ktTWlfShrP8'},
+    {label:'Strict pull/chin-up', url:'https://www.youtube.com/watch?v=HRV5YKKaeVw'}
+  ],
+  'Suitcase carry': [{label:'Suitcase carry', url:'https://www.muscleandstrength.com/exercises/dumbbell-suitcase-carry'}],
+  '1-arm DB row': [{label:'1-arm DB row', url:'https://www.youtube.com/watch?v=dFzUjzfih7k'}],
+  'Cable row': [{label:'Cable row', url:'https://www.youtube.com/watch?v=UCXxvVItLoM'}],
+  'Optional curls + triceps': [
+    {label:'Cable curl', url:'https://www.youtube.com/watch?v=ra-Kxl5JmUU'},
+    {label:'Triceps pushdown', url:'https://www.youtube.com/watch?v=_w-HpW70nSQ'}
+  ],
+  'Ab wheel / hanging knee raise': [
+    {label:'Ab wheel', url:'https://www.youtube.com/watch?v=OJIWMlLa38Q'},
+    {label:'Hanging knee raise', url:'https://support.runna.com/en/articles/6376285-hanging-knee-raise-exercise-tutorial'}
+  ]
+};
+
+const movementVideoAliases = {
+  'Easy bike':'BikeErg / easy bike',
+  'Deadlift ramp-up':'Deadlift',
+  'Light DB row':'Chest-supported DB row',
+  'Machine chest press ramp-up':'Machine chest press',
+  'Very light lateral raise':'DB lateral raise',
+  'Light scaption':'DB scaption',
+  'Light cable lateral raise':'Cable lateral raise',
+  'Hip thrust ramp-up':'Hip thrust'
+};
+
+function videosForMovement(name){
+  const key=movementVideoAliases[name] || name;
+  return movementVideos[key] || [];
+}
+function movementTitleHTML(name){
+  const videos=videosForMovement(name), safe=escapeHtml(name);
+  if(!videos.length) return safe;
+  return `<a class="movement-link" href="${videos[0].url}" target="_blank" rel="noopener noreferrer" aria-label="Watch ${safe} technique demo">${safe}<span class="video-indicator" aria-hidden="true">▶</span></a>`;
+}
+function movementAltLinksHTML(name){
+  const videos=videosForMovement(name);
+  if(videos.length<=1) return '';
+  return `<div class="movement-alt-videos"><span>Videos:</span>${videos.map((v,i)=>`<a href="${v.url}" target="_blank" rel="noopener noreferrer">${escapeHtml(v.label)}</a>`).join('')}</div>`;
+}
 
 const benchmarkRows = [
   ['Strict chin-ups','max reps'],
@@ -594,7 +671,7 @@ function warmupHTML(week,day,log){
       <div><div class="clock-kicker">SESSION TIMER</div><div class="clock-value" id="sessionElapsed">${started?formatDuration(sessionDurationMs(log,!log.endedAt)):'Not started'}</div><div class="exercise-meta" id="sessionTimeDetail">${started?`Started ${formatClock(log.startedAt)}`:'Start when you begin the warm-up.'}</div></div>
       <div class="clock-actions">${started?`<button type="button" class="secondary compact" id="resetSessionTimer">Reset</button>`:`<button type="button" class="primary compact" id="startSessionTimer">Start warm-up</button>`}</div>
     </div>
-    ${list.map(([n,d],i)=>`<div class="warmup-row"><span class="warmup-num">${i+1}</span><div><strong>${n}</strong><div class="exercise-meta">${d}</div></div></div>`).join('')}
+    ${list.map(([n,d],i)=>`<div class="warmup-row"><span class="warmup-num">${i+1}</span><div><strong>${movementTitleHTML(n)}</strong><div class="exercise-meta">${d}</div>${movementAltLinksHTML(n)}</div></div>`).join('')}
   </section>`;
 }
 function sessionHTML(week,day,isToday=false){
@@ -626,8 +703,8 @@ function exerciseHTML(week,day,e,index,log){
   const suggestedText=suggestion ? `<div class="suggestion ${suggestion.kind==='estimate'?'estimated':''}"><strong>Suggested:</strong> ${suggestion.value!==null?`${suggestion.value} kg · `:''}${suggestion.text}${suggestion.value!==null?`<br><button type="button" class="use-suggestion" data-use-suggestion="${encodeURIComponent(e.name)}" data-suggested="${suggestion.value}">Use ${suggestion.value} kg for all sets</button>`:''}</div>` : '';
   const goalText=goal ? `<div class="goal-strip"><span>🎯</span><div><strong>Working toward</strong><br>${goal}</div></div>` : '';
   return `<div class="exercise">
-    <div class="row between"><div><div class="row wrap" style="gap:6px"><h3>${e.name}</h3>${goal?'<span class="badge goal-badge">GOAL</span>':''}</div><div class="exercise-meta">${e.sets} sets · ${e.reps} · <span class="rest-prescription">rest ${Math.floor(restSecondsFor(e.name)/60)}:${String(restSecondsFor(e.name)%60).padStart(2,'0')}</span></div></div><span class="badge">${index+1}</span></div>
-    <div class="exercise-meta">${e.note}</div>
+    <div class="row between"><div><div class="row wrap" style="gap:6px"><h3>${movementTitleHTML(e.name)}</h3>${goal?'<span class="badge goal-badge">GOAL</span>':''}</div><div class="exercise-meta">${e.sets} sets · ${e.reps} · <span class="rest-prescription">rest ${Math.floor(restSecondsFor(e.name)/60)}:${String(restSecondsFor(e.name)%60).padStart(2,'0')}</span></div></div><span class="badge">${index+1}</span></div>
+    <div class="exercise-meta">${e.note}</div>${movementAltLinksHTML(e.name)}
     ${goalText}${suggestedText}
     <div class="set-grid">
       <div></div><div class="head">kg</div><div class="head">${isCarryExercise(e.name)?'m':'reps'}</div><div class="head">RIR</div><div class="head">pain</div>
