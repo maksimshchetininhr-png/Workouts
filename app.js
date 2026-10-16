@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.1';
+const APP_VERSION = '5.2';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -130,7 +130,6 @@ const basePrograms = {
       ['DB lateral raise',3,'12–20','Strict reps; no shrugging.'],
       ['DB scaption',3,'10–15','Pain-free scapular plane.'],
       ['Rear-delt raise',2,'12–20','Chest-supported if possible.'],
-      ['Hammer curl',3,'8–12','Main biceps hypertrophy work.'],
       ['Band triceps pressdown',3,'12–20','Shoulder-friendly triceps volume.'],
       ['Ab wheel / hanging knee raise',3,'6–15','Controlled; alternate as preferred.']
     ],
@@ -157,7 +156,6 @@ const basePrograms = {
       ['DB lateral raise',3,'12–20','Primary lateral-delt work.'],
       ['DB scaption',2,'10–15','Pain-free shoulder-capacity work.'],
       ['Rear-delt raise',2,'12–20','Controlled; chest-supported if possible.'],
-      ['Hammer curl',3,'8–12','Main biceps movement.'],
       ['Band triceps pressdown',4,'12–20','Main triceps-volume movement.'],
       ['Ab wheel / hanging knee raise',3,'6–15','Controlled trunk work.']
     ],
@@ -183,7 +181,6 @@ const basePrograms = {
       ['DB lateral raise',3,'12–20','Upper-body hypertrophy.'],
       ['DB scaption',2,'12–15','Maintain shoulder capacity.'],
       ['Rear-delt raise',2,'12–20','Controlled.'],
-      ['Hammer curl',3,'8–12','Main biceps hypertrophy work.'],
       ['Band triceps pressdown',3,'12–20','Main triceps hypertrophy work.'],
       ['Suitcase carry',2,'30 m/side','Anti-lateral-flexion trunk + grip.'],
       ['Hanging knee raise',3,'8–15','No swinging.']
