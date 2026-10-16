@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.0';
+const APP_VERSION = '5.1';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -29,9 +29,9 @@ const defaultSettings = {
 };
 
 const cycles = [
-  { weeks:[1,2,3,4], name:'Pull + Posterior Chain', focus:'Chin-ups, deadlift, back hypertrophy, hamstrings/glutes' },
-  { weeks:[5,6,7,8], name:'Shoulders + Arms', focus:'Delts, biceps, triceps, shoulder capacity' },
-  { weeks:[9,10,11,12], name:'Functional Strength', focus:'Deadlift, weighted chin-up, carries, trunk strength and grip' }
+  { weeks:[1,2,3,4], name:'Back + Biceps', focus:'Deadlift and chin-up strength, back hypertrophy, biceps growth' },
+  { weeks:[5,6,7,8], name:'Delts + Triceps', focus:'Shoulder-friendly delt size, triceps growth, arm development' },
+  { weeks:[9,10,11,12], name:'Arms + Functional Strength', focus:'Biceps/triceps, deadlift, weighted chin-up, carries and trunk strength' }
 ];
 
 const progressionNote = (week) => {
@@ -54,34 +54,34 @@ const warmups = {
       ['Deadlift ramp-up','3 progressive sets before work sets']
     ],
     sun: [
-      ['BikeErg / easy bike','3 min'],
-      ['Band external rotation','12/side'],
-      ['Serratus wall slide','8–10 reps'],
-      ['GHD hip extension','8 easy reps'],
-      ['Light DB row','10 reps/side']
-    ],
-    wed: [
       ['Easy bike','3 min'],
       ['Band external rotation','12/side'],
       ['Serratus wall slide','8–10 reps'],
-      ['Machine chest press ramp-up','2 light sets'],
-      ['Bodyweight glute bridge','10 reps']
+      ['Very light lateral raise','15 reps'],
+      ['Light scaption','12 reps']
+    ],
+    wed: [
+      ['Easy bike','3 min'],
+      ['Hip hinge drill','8 reps'],
+      ['Band external rotation','12/side'],
+      ['Deadlift ramp-up','2 progressive technique sets'],
+      ['Machine chest press ramp-up','1–2 light sets']
     ]
   },
   2: {
     sat: [
       ['BikeErg / easy bike','3 min'],
+      ['Hip hinge drill','10 reps'],
       ['Band external rotation','12/side'],
-      ['Serratus wall slide','8–10 reps'],
       ['Scapular pull-up','8 reps'],
-      ['Very light lateral raise','15 reps']
+      ['Deadlift ramp-up','3 progressive sets before work sets']
     ],
     sun: [
       ['Easy bike','3 min'],
       ['Band external rotation','12/side'],
       ['Serratus wall slide','8–10 reps'],
       ['Light scaption','12 reps'],
-      ['GHD hip extension','8 easy reps']
+      ['Very light lateral raise','15 reps']
     ],
     wed: [
       ['Easy bike','3 min'],
@@ -103,15 +103,15 @@ const warmups = {
       ['Easy bike','3 min'],
       ['Band external rotation','12/side'],
       ['Serratus wall slide','8–10 reps'],
-      ['Bodyweight glute bridge','12 reps'],
-      ['Hip thrust ramp-up','2 progressive sets']
+      ['Light scaption','12 reps'],
+      ['Very light lateral raise','15 reps']
     ],
     wed: [
       ['Easy bike','3 min'],
+      ['Hip hinge drill','8 reps'],
       ['Band external rotation','12/side'],
-      ['Serratus wall slide','8–10 reps'],
-      ['Machine chest press ramp-up','2 light sets'],
-      ['Hip thrust ramp-up','2 progressive sets']
+      ['Deadlift ramp-up','2 progressive technique sets'],
+      ['Machine chest press ramp-up','1–2 light sets']
     ]
   }
 };
@@ -119,99 +119,116 @@ const warmups = {
 const basePrograms = {
   1: {
     sat: [
-      ['Deadlift',4,'5–7','Main strength lift. Build up gradually.'],
-      ['Strict chin-up',4,'5–8','Neutral or supinated grip; no kipping.'],
+      ['Deadlift',4,'5–7','Main strength lift. Build up gradually; one hard hinge day.'],
+      ['Strict chin-up',4,'5–8','Main pulling goal. Neutral or supinated grip; no kipping.'],
       ['Chest-supported DB row',3,'8–12','Strict, chest supported.'],
-      ['Farmer carry',4,'30–40 m','Heavy, ribs down, shoulders relaxed.'],
-      ['Band external rotation',2,'15/side','Shoulder prehab.']
+      ['Hammer curl',2,'8–12','Direct biceps work without excessive fatigue.'],
+      ['DB triceps extension / kickback',2,'10–15','Choose the pain-free shoulder-friendly option.'],
+      ['Farmer carry',2,'30–40 m','Heavy, ribs down, shoulders relaxed.']
     ],
     sun: [
-      ['GHD hip extension',3,'10–15','Controlled tempo.'],
-      ['Chest-supported DB row',3,'10–15','Lighter than Saturday.'],
       ['DB lateral raise',3,'12–20','Strict reps; no shrugging.'],
       ['DB scaption',3,'10–15','Pain-free scapular plane.'],
-      ['Hammer curl',3,'8–12','Controlled eccentric.'],
-      ['Ab wheel / hanging knee raise',3,'6–15','Alternate weekly.']
+      ['Rear-delt raise',2,'12–20','Chest-supported if possible.'],
+      ['Hammer curl',3,'8–12','Main biceps hypertrophy work.'],
+      ['Band triceps pressdown',3,'12–20','Shoulder-friendly triceps volume.'],
+      ['Ab wheel / hanging knee raise',3,'6–15','Controlled; alternate as preferred.']
     ],
     wed: [
+      ['Deadlift technique',2,'5','Light technique exposure at about 60–70% of Saturday; ~4 RIR.'],
       ['Machine chest press',4,'8–12','Pain-free ROM only.'],
-      ['Hip thrust',3,'8–12','Moderately heavy.'],
+      ['Hip thrust',3,'8–12','Moderately heavy; main secondary lower-body lift.'],
       ['Seated or cable row',3,'8–12','Controlled full ROM.'],
-      ['Leg curl',3,'10–15','Hamstring hypertrophy.'],
-      ['Cable triceps pushdown',3,'10–15','Stop short of shoulder irritation.'],
-      ['Pallof press',3,'10–15/side','Anti-rotation trunk work.']
+      ['Cable curl',3,'8–12','Second direct biceps exposure.'],
+      ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure; no shoulder compensation.']
     ]
   },
   2: {
     sat: [
-      ['Deadlift',3,'5–6','Maintenance strength; keep reps clean.'],
+      ['Deadlift',3,'5–6','Maintain strength with clean reps.'],
       ['Strict chin-up',3,'6–8','Maintain pulling strength.'],
-      ['DB lateral raise',4,'12–20','Primary delt volume.'],
-      ['Rear-delt raise',3,'12–20','Chest-supported if possible.'],
-      ['DB triceps extension / kickback',3,'10–15','Choose the pain-free option.'],
-      ['Farmer carry',3,'30–40 m','Grip + trunk + loaded carry.']
+      ['Chest-supported DB row',2,'8–12','Back maintenance without excess fatigue.'],
+      ['DB lateral raise',2,'12–20','First delt exposure of the week.'],
+      ['Hammer curl',3,'8–12','Direct biceps volume.'],
+      ['DB triceps extension / kickback',3,'10–15','Direct triceps volume; pain-free option only.'],
+      ['Farmer carry',2,'30–40 m','Grip + trunk + loaded carry.']
     ],
     sun: [
-      ['DB scaption',4,'10–15','Pain-free scapular plane.'],
-      ['Rear-delt raise',3,'12–20','Controlled.'],
-      ['Hammer curl',4,'8–12','Main biceps movement.'],
-      ['Band triceps pressdown',3,'12–20','Use a strong band; shoulder-friendly.'],
-      ['GHD hip extension',3,'10–15','Posterior chain maintenance.'],
-      ['Ab wheel / hanging knee raise',3,'6–15','Controlled.']
+      ['DB lateral raise',3,'12–20','Primary lateral-delt work.'],
+      ['DB scaption',2,'10–15','Pain-free shoulder-capacity work.'],
+      ['Rear-delt raise',2,'12–20','Controlled; chest-supported if possible.'],
+      ['Hammer curl',3,'8–12','Main biceps movement.'],
+      ['Band triceps pressdown',4,'12–20','Main triceps-volume movement.'],
+      ['Ab wheel / hanging knee raise',3,'6–15','Controlled trunk work.']
     ],
     wed: [
-      ['Machine chest press',4,'8–12','Only if pain-free.'],
-      ['Hip thrust',3,'8–12','Posterior chain.'],
-      ['Cable lateral raise',3,'12–20','Smooth reps.'],
-      ['Cable rear-delt fly',3,'12–20','Light and controlled.'],
-      ['Cable curl',3,'8–12','Full elbow flexion.'],
-      ['Cable triceps pushdown',3,'10–15','No shoulder compensation.']
+      ['Machine chest press',3,'8–12','Only if pain-free.'],
+      ['Hip thrust',3,'8–12','Posterior-chain maintenance.'],
+      ['Cable lateral raise',3,'12–20','Second lateral-delt exposure.'],
+      ['Cable rear-delt fly',2,'12–20','Light and controlled.'],
+      ['Cable curl',3,'8–12','Second direct biceps exposure.'],
+      ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure.']
     ]
   },
   3: {
     sat: [
-      ['Deadlift',4,'4–6','Primary strength lift.'],
+      ['Deadlift',4,'4–6','Primary functional-strength lift.'],
       ['Weighted / strict chin-up',4,'4–6','Add load only when bodyweight sets are clean.'],
-      ['Farmer carry',4,'30–40 m','Progress total load.'],
-      ['Chest-supported DB row',3,'8–10','Strength-hypertrophy bridge.'],
-      ['Ab wheel',3,'6–12','Strict trunk position.']
+      ['Farmer carry',3,'30–40 m','Progress total load.'],
+      ['Chest-supported DB row',2,'8–10','Keep back strength without crowding arm work.'],
+      ['Hammer curl',2,'8–12','Direct biceps strength-hypertrophy work.'],
+      ['DB triceps extension / kickback',2,'10–15','Direct triceps work; pain-free option only.']
     ],
     sun: [
-      ['Hip thrust',4,'6–10','Heavier functional hip extension.'],
-      ['GHD hip extension',3,'10–12','Controlled posterior-chain work.'],
-      ['Suitcase carry',3,'30 m/side','Anti-lateral-flexion trunk work.'],
-      ['1-arm DB row',3,'8–12/side','Stable torso.'],
-      ['DB scaption',3,'12–15','Maintain shoulder capacity.'],
+      ['DB lateral raise',3,'12–20','Upper-body hypertrophy.'],
+      ['DB scaption',2,'12–15','Maintain shoulder capacity.'],
+      ['Rear-delt raise',2,'12–20','Controlled.'],
+      ['Hammer curl',3,'8–12','Main biceps hypertrophy work.'],
+      ['Band triceps pressdown',3,'12–20','Main triceps hypertrophy work.'],
+      ['Suitcase carry',2,'30 m/side','Anti-lateral-flexion trunk + grip.'],
       ['Hanging knee raise',3,'8–15','No swinging.']
     ],
     wed: [
+      ['Deadlift technique',2,'3–5','Light technique exposure at about 60–70% of Saturday; keep it easy.'],
+      ['Hip thrust',3,'6–10','Strong secondary hip-extension movement.'],
       ['Machine chest press',3,'8–12','Pain-free chest maintenance.'],
-      ['Cable row',3,'8–12','Controlled strength work.'],
-      ['Leg curl',3,'8–12','Hamstrings.'],
-      ['Hip thrust',3,'8–10','Moderate-heavy.'],
-      ['Pallof press',3,'10–15/side','Trunk control.'],
-      ['Optional curls + triceps',2,'10–15','Only if time/recovery allow.']
+      ['Cable row',3,'8–12','Controlled upper-back work.'],
+      ['Cable curl',3,'8–12','Second direct biceps exposure.'],
+      ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure.'],
+      ['Pallof press',2,'10–15/side','Trunk control.']
     ]
   }
 };
 
 const goalMap = {
   1: {
-    'Deadlift': 'Cycle goal: build your clean 5–7 rep working load. By Week 3 aim for ~+5 kg vs Week 1 at similar RIR and pain.',
-    'Strict chin-up': 'Cycle goal: add 1–2 clean reps to your sets and improve your max strict-rep benchmark.',
+    'Deadlift': 'Cycle goal: build your clean 5–7 rep working load. By Week 3 aim for more reps or ~+5 kg at similar RIR and pain.',
+    'Strict chin-up': 'Cycle goal: add clean reps across the four sets and improve your max strict-rep benchmark.',
+    'Hammer curl': 'Arm goal: progress strict reps and load without swinging.',
+    'Cable curl': 'Arm goal: progress reps first, then the smallest load increase while keeping full elbow flexion.',
+    'Deadlift technique': 'Technique goal: practice crisp setup, bracing and bar path without fatigue; this is not a hard set day.',
     'Machine chest press': 'Secondary goal: reach all prescribed sets at 12 reps pain-free before increasing the stack.'
   },
   2: {
     'DB lateral raise': 'Cycle goal: add strict reps first, then the smallest load jump without shrugging or shoulder irritation.',
-    'DB scaption': 'Cycle goal: own 4 kg for 15 clean reps pain-free before considering 5 kg.',
-    'Hammer curl': 'Cycle goal: progress from 10 kg toward clean 3–4 × 12 before increasing load.',
+    'DB scaption': 'Shoulder goal: own the current load for clean pain-free reps before increasing.',
+    'Hammer curl': 'Arm goal: progress reps or load while keeping the eccentric controlled.',
+    'DB triceps extension / kickback': 'Arm goal: progress the pain-free triceps variation without provoking the shoulder.',
+    'Band triceps pressdown': 'Arm goal: add reps or band tension while keeping shoulders quiet.',
+    'Cable triceps pushdown': 'Arm goal: progress triceps load/reps with no shoulder compensation.',
+    'Cable curl': 'Arm goal: add reps, then load, while maintaining strict form.',
     'Machine chest press': 'Secondary goal: maintain or slowly progress pain-free pressing capacity.'
   },
   3: {
     'Deadlift': 'Cycle goal: strongest clean 4–6 rep sets of the program in Week 11; no grinders.',
     'Weighted / strict chin-up': 'Cycle goal: once 4 × 6 bodyweight is comfortable, add 2.5 kg and rebuild reps.',
     'Farmer carry': 'Cycle goal: carry ~10–20% more total load than your Week 9 baseline for the same distance.',
-    'Hip thrust': 'Secondary goal: progress a strong 6–10 rep hip-extension pattern while the knee stays calm.'
+    'Hammer curl': 'Arm goal: beat your Cycle 2 biceps performance while keeping form strict.',
+    'Band triceps pressdown': 'Arm goal: continue adding quality triceps volume without shoulder irritation.',
+    'Cable curl': 'Arm goal: finish the cycle with your strongest strict 8–12 rep cable-curl sets.',
+    'Cable triceps pushdown': 'Arm goal: finish the cycle with your strongest pain-free 10–15 rep pushdown sets.',
+    'Deadlift technique': 'Technique goal: reinforce the Saturday deadlift pattern without adding meaningful fatigue.',
+    'Hip thrust': 'Secondary strength goal: progress a strong 6–10 rep hip-extension pattern while the knee stays calm.'
   }
 };
 
@@ -274,13 +291,14 @@ const movementVideoAliases = {
   'Very light lateral raise':'DB lateral raise',
   'Light scaption':'DB scaption',
   'Light cable lateral raise':'Cable lateral raise',
-  'Hip thrust ramp-up':'Hip thrust'
+  'Hip thrust ramp-up':'Hip thrust',
+  'Deadlift technique':'Deadlift'
 };
 
 const dayNames = {
-  1: { sat:'Pull + Hinge', sun:'Back, Delts + Arms', wed:'Press + Hips' },
-  2: { sat:'Strength + Delts', sun:'Arms + Shoulders', wed:'Press + Cable Pump' },
-  3: { sat:'Heavy Pull + Carry', sun:'Hips + Trunk', wed:'Press + Hamstrings' }
+  1: { sat:'Pull Strength + Arms', sun:'Delts + Arms', wed:'Upper + Hips' },
+  2: { sat:'Strength + Arms', sun:'Delts + Arms', wed:'Upper Pump + Hips' },
+  3: { sat:'Strength + Carry', sun:'Arms + Trunk', wed:'Upper + Hips' }
 };
 const DAYS = ['sat','sun','wed'];
 
@@ -437,6 +455,7 @@ function sessionDurationMs(entry, live=true){
   return end ? Math.max(0,new Date(end)-new Date(entry.startedAt)) : null;
 }
 function restSecondsFor(name){
+  if(/Deadlift technique/i.test(name)) return 120;
   if(/Deadlift/i.test(name)) return 180;
   if(/Weighted \/ strict chin-up/i.test(name)) return 180;
   if(/Strict chin-up/i.test(name)) return 150;
@@ -627,10 +646,18 @@ function progressionFromLast(e, week, day){
   }
   return {value:lastWeight, tag:'repeat', text:`Repeat ${lastWeight} kg and beat last time's reps before adding load.`, kind:'log'};
 }
-function baselineSuggestion(e,week){
+function baselineSuggestion(e,week,day){
   const phase=phaseForWeek(week);
   const b=settings.baselines||{}; const bw=profileWeight();
   const factors=[0.80,0.85,0.90,0.70];
+  if(e.name==='Deadlift technique'){
+    const prev=previousExerciseLog('Deadlift',week,day);
+    const heavy=(prev?.sets||[]).map(r=>numeric(r.weight)).find(Boolean);
+    if(heavy) return {value:roundStep(heavy*0.65,2.5),text:`Technique load: about 65% of your most recent heavy deadlift working load (${heavy} kg).`,kind:'rule'};
+    const base=numeric(b.deadlift5RM);
+    if(base) return {value:roundStep(base*0.55,2.5),text:`Technique calibration from your ${base} kg comfortable 5RM. Keep about 4 RIR.`,kind:'baseline'};
+    return {value:roundStep(bw*0.55,2.5),text:'Conservative technique calibration. Keep it easy and crisp; about 4 RIR.',kind:'estimate'};
+  }
   if(e.name==='Deadlift'){
     const base=numeric(b.deadlift5RM);
     if(base) return {value:roundStep(base*factors[phase-1],2.5), text:`Based on your ${base} kg comfortable 5RM.`, kind:'baseline'};
@@ -675,7 +702,10 @@ function baselineSuggestion(e,week){
   if(/GHD hip extension/.test(e.name)) return {value:null,text:'Start with bodyweight. Add a light plate only after 15 controlled reps feel easy.',kind:'rule'};
   return null;
 }
-function suggestedLoad(e,week,day){ return progressionFromLast(e,week,day) || baselineSuggestion(e,week); }
+function suggestedLoad(e,week,day){
+  if(e.name==='Deadlift technique') return baselineSuggestion(e,week,day);
+  return progressionFromLast(e,week,day) || baselineSuggestion(e,week,day);
+}
 function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; }
 
 // Per-set targets shown as grey placeholders; the check button logs them.
