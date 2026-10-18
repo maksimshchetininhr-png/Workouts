@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.2';
+const APP_VERSION = '5.3';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -138,8 +138,10 @@ const basePrograms = {
       ['Machine chest press',4,'8–12','Pain-free ROM only.'],
       ['Hip thrust',3,'8–12','Moderately heavy; main secondary lower-body lift.'],
       ['Seated or cable row',3,'8–12','Controlled full ROM.'],
+      ['Cable lateral raise',2,'12–20','Second weekly delt exposure; smooth pain-free reps.'],
       ['Cable curl',3,'8–12','Second direct biceps exposure.'],
-      ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure; no shoulder compensation.']
+      ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure; no shoulder compensation.'],
+      ['Pallof press',2,'10–15/side','Second weekly core exposure; controlled anti-rotation.']
     ]
   },
   2: {
@@ -147,7 +149,6 @@ const basePrograms = {
       ['Deadlift',3,'5–6','Maintain strength with clean reps.'],
       ['Strict chin-up',3,'6–8','Maintain pulling strength.'],
       ['Chest-supported DB row',2,'8–12','Back maintenance without excess fatigue.'],
-      ['DB lateral raise',2,'12–20','First delt exposure of the week.'],
       ['Hammer curl',3,'8–12','Direct biceps volume.'],
       ['DB triceps extension / kickback',3,'10–15','Direct triceps volume; pain-free option only.'],
       ['Farmer carry',2,'30–40 m','Grip + trunk + loaded carry.']
@@ -162,10 +163,11 @@ const basePrograms = {
     wed: [
       ['Machine chest press',3,'8–12','Only if pain-free.'],
       ['Hip thrust',3,'8–12','Posterior-chain maintenance.'],
-      ['Cable lateral raise',3,'12–20','Second lateral-delt exposure.'],
+      ['Cable lateral raise',3,'12–20','Second shoulder session of the week; smooth pain-free reps.'],
       ['Cable rear-delt fly',2,'12–20','Light and controlled.'],
       ['Cable curl',3,'8–12','Second direct biceps exposure.'],
-      ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure.']
+      ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure.'],
+      ['Pallof press',2,'10–15/side','Second weekly core exposure; controlled anti-rotation.']
     ]
   },
   3: {
@@ -190,9 +192,10 @@ const basePrograms = {
       ['Hip thrust',3,'6–10','Strong secondary hip-extension movement.'],
       ['Machine chest press',3,'8–12','Pain-free chest maintenance.'],
       ['Cable row',3,'8–12','Controlled upper-back work.'],
+      ['Cable lateral raise',2,'12–20','Second weekly delt exposure; shoulder-friendly hypertrophy work.'],
       ['Cable curl',3,'8–12','Second direct biceps exposure.'],
       ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure.'],
-      ['Pallof press',2,'10–15/side','Trunk control.']
+      ['Pallof press',2,'10–15/side','Second weekly core exposure; controlled anti-rotation.']
     ]
   }
 };
@@ -204,7 +207,8 @@ const goalMap = {
     'Hammer curl': 'Arm goal: progress strict reps and load without swinging.',
     'Cable curl': 'Arm goal: progress reps first, then the smallest load increase while keeping full elbow flexion.',
     'Deadlift technique': 'Technique goal: practice crisp setup, bracing and bar path without fatigue; this is not a hard set day.',
-    'Machine chest press': 'Secondary goal: reach all prescribed sets at 12 reps pain-free before increasing the stack.'
+    'Machine chest press': 'Secondary goal: reach all prescribed sets at 12 reps pain-free before increasing the stack.',
+    'Cable lateral raise': 'Secondary shoulder goal: build clean pain-free reps on the Wednesday delt exposure before adding load.'
   },
   2: {
     'DB lateral raise': 'Cycle goal: add strict reps first, then the smallest load jump without shrugging or shoulder irritation.',
@@ -214,7 +218,8 @@ const goalMap = {
     'Band triceps pressdown': 'Arm goal: add reps or band tension while keeping shoulders quiet.',
     'Cable triceps pushdown': 'Arm goal: progress triceps load/reps with no shoulder compensation.',
     'Cable curl': 'Arm goal: add reps, then load, while maintaining strict form.',
-    'Machine chest press': 'Secondary goal: maintain or slowly progress pain-free pressing capacity.'
+    'Machine chest press': 'Secondary goal: maintain or slowly progress pain-free pressing capacity.',
+    'Cable lateral raise': 'Cycle goal: use Wednesday as the second shoulder session; progress reps first, then load without irritation.'
   },
   3: {
     'Deadlift': 'Cycle goal: strongest clean 4–6 rep sets of the program in Week 11; no grinders.',
@@ -225,7 +230,8 @@ const goalMap = {
     'Cable curl': 'Arm goal: finish the cycle with your strongest strict 8–12 rep cable-curl sets.',
     'Cable triceps pushdown': 'Arm goal: finish the cycle with your strongest pain-free 10–15 rep pushdown sets.',
     'Deadlift technique': 'Technique goal: reinforce the Saturday deadlift pattern without adding meaningful fatigue.',
-    'Hip thrust': 'Secondary strength goal: progress a strong 6–10 rep hip-extension pattern while the knee stays calm.'
+    'Hip thrust': 'Secondary strength goal: progress a strong 6–10 rep hip-extension pattern while the knee stays calm.',
+    'Cable lateral raise': 'Secondary shoulder goal: maintain or improve delt size with a second weekly pain-free exposure.'
   }
 };
 
