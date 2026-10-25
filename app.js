@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.5';
+const APP_VERSION = '5.6';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -372,6 +372,7 @@ let settings = deepSettings(loadJSON(STORAGE.settings, null));
 let logs = loadJSON(STORAGE.logs, {});
 let benchmarks = loadJSON(STORAGE.benchmarks, {});
 let meta = loadJSON(STORAGE.meta, {});
+applyOneTimeDataFixes();
 let currentView = 'today';
 let selectedWeek = clampWeek(getProgramWeek(new Date()));
 let selectedDay = dayKeyFromDate(new Date()) || 'sat';
@@ -394,6 +395,36 @@ function loadJSON(key, fallback){
   catch { return structuredClone(fallback); }
 }
 function saveJSON(key, value){ localStorage.setItem(key, JSON.stringify(value)); }
+
+// One-time personal data corrections requested by the user.
+function applyOneTimeDataFixes(){
+  const fixKey='fixed-2026-10-24-workout-duration-60m-v1';
+  if(meta?.[fixKey]) return;
+
+  const targetDate=new Date(2026,9,24,12);
+  const week=getProgramWeek(targetDate);
+  const day=dayKeyFromDate(targetDate);
+  const key=logKey(week,day);
+  const entry=logs[key];
+
+  if(entry?.startedAt){
+    const startMs=new Date(entry.startedAt).getTime();
+    if(Number.isFinite(startMs)){
+      const endISO=new Date(startMs+60*60*1000).toISOString();
+      entry.endedAt=endISO;
+      entry.finishedAt=endISO;
+      entry.completed=true;
+      logs[key]=entry;
+      saveJSON(STORAGE.logs,logs);
+      meta[fixKey]={applied:true,week,day,date:'2026-10-24',durationMinutes:60};
+      saveJSON(STORAGE.meta,meta);
+      return;
+    }
+  }
+
+  // Leave it pending if the local session is not available yet; it can apply
+  // after the correct device restores/loads that workout data.
+}
 function clampWeek(w){ return Math.max(1, Math.min(12, w)); }
 function cycleForWeek(w){ return w <= 4 ? 1 : w <= 8 ? 2 : 3; }
 function phaseForWeek(w){ return ((w-1)%4)+1; }
