@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.7';
+const APP_VERSION = '5.8';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -1115,7 +1115,7 @@ function progressionPanelBody(e,week,day,entry){
   const prev=previousPerformance(e,week,day);
   const sug=suggestedLoad(e,week,day);
   const range=repRange(e.reps);
-  const suggestedLoad=sug?.value!=null ? `${sug.value} kg` : (weightOptional(e.name)?'Bodyweight':'Choose load');
+  const suggestedLoadText=sug?.value!=null ? `${sug.value} kg` : (weightOptional(e.name)?'Bodyweight':'Choose load');
   const prevLabel=prev ? (prev.isLastWeek?'Last week':`Last logged · W${prev.week}`) : 'Last week';
   const prevLoad=prev?.load||'—';
   const prevReps=prev?.reps||'—';
@@ -1130,7 +1130,7 @@ function progressionPanelBody(e,week,day,entry){
       </div>
       <div class="progression-cell suggested-today">
         <span>Suggested today</span>
-        <strong>${escapeHtml(suggestedLoad)}</strong>
+        <strong>${escapeHtml(suggestedLoadText)}</strong>
         <small>${escapeHtml(e.reps)} ${repLabel}${tag?` · ${escapeHtml(tag)}`:''}</small>
       </div>
     </div>
