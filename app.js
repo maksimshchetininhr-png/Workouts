@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.10';
+const APP_VERSION = '5.11';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
