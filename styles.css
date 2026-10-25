@@ -713,3 +713,85 @@ body.flash::after { background:var(--accent); }
   .bottom-nav { width:calc(100% - 18px); bottom:calc(7px + env(safe-area-inset-bottom)); }
   .rest-timer-dock { bottom:calc(89px + env(safe-area-inset-bottom)); width:calc(100% - 18px); }
 }
+
+
+/* v5.14 workout cover images */
+.workout-cover {
+  position:relative;
+  height:238px;
+  margin:10px 0 12px;
+  overflow:hidden;
+  border-radius:24px;
+  background:
+    radial-gradient(circle at 78% 22%,rgba(240,68,77,.25),transparent 34%),
+    linear-gradient(145deg,#24262b 0%,#111214 75%);
+  border:1px solid #2b2d33;
+  box-shadow:0 22px 58px rgba(0,0,0,.28);
+}
+.workout-cover img {
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+  object-position:center;
+  filter:saturate(.72) contrast(1.08) brightness(.72);
+  transform:scale(1.015);
+}
+.workout-cover-shade {
+  position:absolute;
+  inset:0;
+  background:
+    linear-gradient(180deg,rgba(0,0,0,.04) 18%,rgba(0,0,0,.28) 54%,rgba(8,9,11,.94) 100%),
+    linear-gradient(90deg,rgba(0,0,0,.34),transparent 55%);
+}
+.workout-cover::after {
+  content:'';
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:34%;
+  height:4px;
+  background:var(--accent);
+}
+.workout-cover-copy {
+  position:absolute;
+  left:18px;
+  right:18px;
+  bottom:16px;
+  z-index:1;
+}
+.workout-cover-kicker {
+  color:#c1c3c8;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+.workout-cover-title {
+  margin-top:4px;
+  max-width:92%;
+  color:#fff;
+  font-size:23px;
+  line-height:1.08;
+  font-weight:950;
+  letter-spacing:-.035em;
+  text-shadow:0 2px 16px rgba(0,0,0,.45);
+}
+.workout-cover.image-failed {
+  min-height:180px;
+}
+.workout-cover.image-failed .workout-cover-shade {
+  background:
+    radial-gradient(circle at 82% 15%,rgba(240,68,77,.26),transparent 30%),
+    linear-gradient(145deg,rgba(255,255,255,.025),rgba(0,0,0,.18));
+}
+
+@media (max-width:520px) {
+  .workout-cover {
+    height:218px;
+    border-radius:21px;
+    margin-top:8px;
+  }
+  .workout-cover-copy { left:16px; right:16px; bottom:15px; }
+  .workout-cover-title { font-size:21px; }
+}
