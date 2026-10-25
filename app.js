@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.3';
+const APP_VERSION = '5.4';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -606,6 +606,21 @@ function loadStep(name){
   if(/lateral raise|scaption|Rear-delt raise/i.test(name)) return 1;
   return 2.5;
 }
+// Prefer the immediately preceding program week when building per-set grey targets.
+function previousWeekExerciseLog(exerciseName, week){
+  if(week<=1) return null;
+  const targetWeek=week-1;
+  let best=null;
+  for(const d of DAYS){
+    const entry=logs[logKey(targetWeek,d)];
+    const sets=entry?.exercises?.[exerciseName];
+    if(!sets?.some(rowHasData)) continue;
+    const item={score:sessionScore(targetWeek,d),sets,week:targetWeek,day:d};
+    if(!best || item.score>best.score) best=item;
+  }
+  return best;
+}
+
 // Deload weeks are skipped so a light week never becomes the base for the next block.
 function previousExerciseLog(exerciseName, week, day){
   const currentScore=sessionScore(week,day);
@@ -712,19 +727,26 @@ function suggestedLoad(e,week,day){
 function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; }
 
 // Per-set targets shown as grey placeholders; the check button logs them.
+// Each set first mirrors the corresponding set from the immediately previous
+// program week. If unavailable, fall back to the most recent earlier log,
+// then to the normal suggestion/baseline.
 function setTargets(e, week, day, entry){
   const sug=suggestedLoad(e,week,day);
-  const prev=previousExerciseLog(e.name,week,day)?.sets||[];
+  const prevInfo=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
+  const prev=prevInfo?.sets||[];
   const prevRows=prev.filter(rowHasData);
   const range=repRange(e.reps);
   const saved=entry.exercises?.[e.name]||[];
-  const out=[]; let lastW=null;
+  const out=[];
   for(let s=0;s<e.sets;s++){
-    const p=(rowHasData(prev[s])?prev[s]:prevRows[prevRows.length-1])||{};
-    const weight = lastW ?? sug?.value ?? numeric(p.weight) ?? null;
-    const reps = numeric(p.reps) ?? range?.min ?? null;
+    const exact=rowHasData(prev[s]) ? prev[s] : null;
+    const fallback=prevRows.length ? prevRows[Math.min(s,prevRows.length-1)] : null;
+    const p=exact || fallback || {};
+    const ownW=numeric(saved[s]?.weight);
+    const ownR=numeric(saved[s]?.reps);
+    const weight = ownW ?? numeric(p.weight) ?? sug?.value ?? null;
+    const reps = ownR ?? numeric(p.reps) ?? range?.min ?? null;
     out.push({weight, reps});
-    const own=numeric(saved[s]?.weight); if(own) lastW=own;
   }
   return out;
 }
