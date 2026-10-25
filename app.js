@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.14';
+const APP_VERSION = '5.15';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -433,24 +433,28 @@ function dayKeyFromDate(d){ return ({6:'sat',0:'sun',3:'wed'})[d.getDay()] || nu
 function dayLabel(k){ return ({sat:'Saturday',sun:'Sunday',wed:'Wednesday'})[k]; }
 function dayOrder(k){ return ({sat:0,sun:1,wed:2})[k] ?? 0; }
 function sessionName(week, day){ return dayNames[cycleForWeek(week)][day]; }
-function workoutImageTerms(week,day){
-  const cycle=cycleForWeek(week);
-  if(day==='sat') return cycle===3 ? 'strength,barbell,weightlifting,gym' : 'weightlifting,barbell,strength,gym';
-  if(day==='sun') return cycle===2 ? 'dumbbell,fitness,strength,gym' : 'fitness,dumbbell,training,gym';
-  return 'strength,training,weights,gym';
-}
-function workoutImageLock(week,day){
-  const d=sessionDate(week,day);
-  const n=Number(`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`);
-  return n + dayOrder(day) + week*37;
+const WORKOUT_IMAGES = [
+  'https://images.unsplash.com/photo-1723627635098-42d4a8b0952b?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1682530679202-a478ce18f924?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1741478551825-e7e5c77a2247?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1706029831385-1c89922848eb?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1758875570005-52f6fff50854?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1662045010187-80bf72e85eee?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1689514226761-336eaf77e311?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1688521011206-f72fce2343c4?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1688521010836-66731755220a?auto=format&fit=crop&w=1280&h=720&q=80',
+  'https://images.unsplash.com/photo-1639653817991-52246d4527a5?auto=format&fit=crop&w=1280&h=720&q=80'
+];
+function workoutImageIndex(week,day){
+  return ((week-1)*DAYS.length + dayOrder(day)) % WORKOUT_IMAGES.length;
 }
 function workoutImageUrl(week,day){
-  return `https://loremflickr.com/1280/720/${workoutImageTerms(week,day)}?lock=${workoutImageLock(week,day)}`;
+  return WORKOUT_IMAGES[workoutImageIndex(week,day)];
 }
 function workoutCoverHTML(week,day){
   const title=`${dayLabel(day)} · ${sessionName(week,day)}`;
   return `<section class="workout-cover">
-    <img src="${workoutImageUrl(week,day)}" alt="" loading="eager" decoding="async"
+    <img src="${workoutImageUrl(week,day)}" alt="" loading="eager" decoding="async" fetchpriority="high" referrerpolicy="no-referrer"
       onerror="this.closest('.workout-cover')?.classList.add('image-failed');this.remove()">
     <div class="workout-cover-shade"></div>
     <div class="workout-cover-copy">
