@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.13';
+const APP_VERSION = '5.14';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -433,6 +433,32 @@ function dayKeyFromDate(d){ return ({6:'sat',0:'sun',3:'wed'})[d.getDay()] || nu
 function dayLabel(k){ return ({sat:'Saturday',sun:'Sunday',wed:'Wednesday'})[k]; }
 function dayOrder(k){ return ({sat:0,sun:1,wed:2})[k] ?? 0; }
 function sessionName(week, day){ return dayNames[cycleForWeek(week)][day]; }
+function workoutImageTerms(week,day){
+  const cycle=cycleForWeek(week);
+  if(day==='sat') return cycle===3 ? 'strength,barbell,weightlifting,gym' : 'weightlifting,barbell,strength,gym';
+  if(day==='sun') return cycle===2 ? 'dumbbell,fitness,strength,gym' : 'fitness,dumbbell,training,gym';
+  return 'strength,training,weights,gym';
+}
+function workoutImageLock(week,day){
+  const d=sessionDate(week,day);
+  const n=Number(`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`);
+  return n + dayOrder(day) + week*37;
+}
+function workoutImageUrl(week,day){
+  return `https://loremflickr.com/1280/720/${workoutImageTerms(week,day)}?lock=${workoutImageLock(week,day)}`;
+}
+function workoutCoverHTML(week,day){
+  const title=`${dayLabel(day)} · ${sessionName(week,day)}`;
+  return `<section class="workout-cover">
+    <img src="${workoutImageUrl(week,day)}" alt="" loading="eager" decoding="async"
+      onerror="this.closest('.workout-cover')?.classList.add('image-failed');this.remove()">
+    <div class="workout-cover-shade"></div>
+    <div class="workout-cover-copy">
+      <div class="workout-cover-kicker">Week ${week} · Cycle ${cycleForWeek(week)}${isDeload(week)?' · Deload':''}</div>
+      <div class="workout-cover-title">${escapeHtml(title)}</div>
+    </div>
+  </section>`;
+}
 function parseLocalDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,12); }
 function getProgramWeek(date){
   const start = parseLocalDate(settings.startDate);
@@ -1092,6 +1118,7 @@ function sessionHTML(week,day,{context='program', swapped=false, scheduled=null}
       ${swapped && scheduled ? `<button type="button" class="link-btn" id="backToSchedule">Back to ${dayLabel(scheduled.day)}'s session</button>` : swapped ? `<button type="button" class="link-btn" id="backToSchedule">Clear swap</button>` : ''}
       <button type="button" class="link-btn" data-open-chooser>${icon('swap')}Switch session</button></div>` : '';
   return `
+    ${workoutCoverHTML(week,day)}
     <section class="card hero">
       <div class="hero-top"><div class="hero-kicker">${dateText} · Week ${week} · Cycle ${cycleNo}${isDeload(week)?' · Deload':''}</div><span class="badge ${log.completed?'good':'on-dark'}">${log.completed?'✓ Done':'~60 min'}</span></div>
       <h2 class="hero-title">${dayLabel(day)} · ${sessionName(week,day)}</h2>
