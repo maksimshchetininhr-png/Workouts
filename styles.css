@@ -147,6 +147,7 @@ details[open] > summary .chev { transform:rotate(90deg); }
 
 .progression-panel { margin-top:10px; border:1px solid var(--line); background:var(--card-2); border-radius:14px; overflow:hidden; }
 .progression-compare { display:grid; grid-template-columns:1fr 1fr; }
+.progression-compare.single { grid-template-columns:1fr; }
 .progression-cell { padding:10px 12px; min-width:0; }
 .progression-cell + .progression-cell { border-left:1px solid var(--line); }
 .progression-cell span { display:block; color:var(--muted); font-size:10px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
