@@ -151,8 +151,8 @@ details[open] > summary .chev { transform:rotate(90deg); }
 .progression-cell { padding:10px 12px; min-width:0; }
 .progression-cell + .progression-cell { border-left:1px solid var(--line); }
 .progression-cell span { display:block; color:var(--muted); font-size:10px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
-.progression-cell strong { display:block; margin-top:3px; font-size:17px; font-weight:900; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.progression-cell small { display:block; margin-top:2px; color:var(--muted); font-size:11.5px; line-height:1.35; font-variant-numeric:tabular-nums; }
+.progression-cell strong { display:block; margin-top:3px; font-size:17px; font-weight:900; font-variant-numeric:tabular-nums; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; line-height:1.3; }
+.progression-cell small { display:block; margin-top:2px; color:var(--muted); font-size:11.5px; line-height:1.45; font-variant-numeric:tabular-nums; white-space:normal; overflow:visible; text-overflow:clip; overflow-wrap:anywhere; }
 .progression-cell.suggested-today { background:var(--accent-soft); }
 .progression-guidance { border-top:1px solid var(--line); padding:9px 12px; color:var(--muted); font-size:12px; line-height:1.4; }
 
