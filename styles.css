@@ -5,7 +5,7 @@
   --primary:#0f172a; --primary-ink:#ffffff;
   --hero-bg:linear-gradient(140deg,#0f172a 0%,#1e1b4b 100%); --hero-ink:#ffffff; --hero-muted:#c7d2fe;
   --accent:#4f46e5; --accent-soft:#eef2ff; --accent-ink:#3730a3;
-  --good:#0f766e; --good-soft:#ccfbf1; --good-solid:#0d9488;
+  --good:#ff9ba1; --good-soft:rgba(240,68,77,.13); --good-solid:#f0444d;
   --warn:#b45309; --warn-soft:#fff7ed; --warn-line:#fed7aa;
   --danger:#b91c1c; --danger-soft:#fee2e2;
   --goal:#6d28d9; --goal-soft:#ede9fe;
@@ -20,7 +20,7 @@
     --primary:#e7ecf4; --primary-ink:#0a0e15;
     --hero-bg:linear-gradient(140deg,#1a2240 0%,#2b1f57 100%); --hero-ink:#ffffff; --hero-muted:#c7d2fe;
     --accent:#818cf8; --accent-soft:rgba(129,140,248,.14); --accent-ink:#c7d2fe;
-    --good:#2dd4bf; --good-soft:rgba(45,212,191,.14); --good-solid:#14b8a6;
+    --good:#ff9ba1; --good-soft:rgba(240,68,77,.13); --good-solid:#f0444d;
     --warn:#fbbf24; --warn-soft:rgba(251,191,36,.08); --warn-line:rgba(251,191,36,.28);
     --danger:#f87171; --danger-soft:rgba(248,113,113,.14);
     --goal:#c4b5fd; --goal-soft:rgba(167,139,250,.15);
@@ -262,7 +262,7 @@ textarea { min-height:84px; resize:vertical; line-height:1.4; }
 .rest-timer-progress span { display:block; height:100%; width:0; background:#5eead4; transition:width 1s linear; }
 .rest-timer-copy { min-width:0; }
 .rest-timer-kicker { font-size:9.5px; font-weight:900; letter-spacing:.14em; color:#94a3b8; }
-.rest-timer-dock.done .rest-timer-kicker { color:#ccfbf1; }
+.rest-timer-dock.done .rest-timer-kicker { color:#ffffff; }
 .rest-timer-label { margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; font-size:12px; color:#e2e8f0; }
 .rest-timer-value { min-width:64px; text-align:center; font-size:27px; font-weight:900; font-variant-numeric:tabular-nums; }
 .rest-mini-btn { border:1px solid rgba(255,255,255,.22); background:rgba(255,255,255,.1); color:#fff; border-radius:11px; padding:9px 10px; font-size:12px; font-weight:850; }
