@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.9';
+const APP_VERSION = '5.10';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -1193,31 +1193,17 @@ function liveProgressionGuidance(e,week,day,entry){
 function progressionPanelBody(e,week,day,entry){
   const prev=previousPerformance(e,week,day);
   const sug=suggestedLoad(e,week,day);
-  const targets=setTargets(e,week,day,entry);
   const prevLabel=prev ? (prev.isLastWeek?'Last week':`Last logged · W${prev.week}`) : 'Last week';
   const prevLoad=prev?.load||'—';
   const prevReps=prev?.reps||'—';
   const repLabel=isCarryExercise(e.name)?'distance':'reps';
-  const tag=sug?.tag || ({baseline:'baseline', estimate:'calibration',deload:'deload'})[sug?.kind] || '';
-
-  const targetWeights=targets.map(t=>t.weight).filter(v=>v!=null);
-  const allSameWeight=targetWeights.length && targetWeights.every(v=>v===targetWeights[0]);
-  const suggestedLoadText=targetWeights.length
-    ? (allSameWeight ? `${targetWeights[0]} kg` : targets.map(t=>t.weight!=null?`${t.weight}`:'BW').join(' / ')+' kg')
-    : (weightOptional(e.name)?'Bodyweight':'Choose load');
-  const suggestedRepText=targets.map(t=>t.reps??'—').join(' / ');
 
   return `
-    <div class="progression-compare">
+    <div class="progression-compare single">
       <div class="progression-cell">
         <span>${prevLabel}</span>
         <strong>${escapeHtml(prevLoad)}</strong>
         <small>${escapeHtml(prevReps)} ${repLabel}</small>
-      </div>
-      <div class="progression-cell suggested-today">
-        <span>Suggested today</span>
-        <strong>${escapeHtml(suggestedLoadText)}</strong>
-        <small>${escapeHtml(suggestedRepText)} ${repLabel}${tag?` · ${escapeHtml(tag)}`:''}</small>
       </div>
     </div>
     <div class="progression-guidance">${escapeHtml(liveProgressionGuidance(e,week,day,entry) || sug?.text || '')}</div>
