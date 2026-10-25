@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.6';
+const APP_VERSION = '5.7';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -673,31 +673,52 @@ function previousExerciseLog(exerciseName, week, day){
   return best || bestAny;
 }
 function progressionFromLast(e, week, day){
-  const prev=previousExerciseLog(e.name,week,day); if(!prev) return null;
+  const prev=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
+  if(!prev) return null;
   const rows=prev.sets.filter(rowHasData); if(!rows.length) return null;
   const weights=rows.map(r=>numeric(r.weight)).filter(Boolean);
   if(!weights.length) return null;
   const lastWeight=weights[0];
-  const pains=rows.map(r=>r.pain===''||r.pain==null?NaN:Number(r.pain)).filter(Number.isFinite);
   const rirs=rows.map(r=>r.rir===''||r.rir==null?NaN:Number(r.rir)).filter(Number.isFinite);
   const reps=rows.map(r=>Number(r.reps)).filter(n=>Number.isFinite(n)&&n>0);
   const range=repRange(e.reps);
-  const maxPain=pains.length?Math.max(...pains):0;
   const minRir=rirs.length?Math.min(...rirs):2;
   const step=loadStep(e.name);
-  if(maxPain>2){
-    const v=Math.max(step, Math.min(roundStep(lastWeight*0.9,step), lastWeight-step));
-    return {value:v, tag:'↓ pain', text:`Pain went above 2/10 last time at ${lastWeight} kg, so drop about 10%.`, kind:'log'};
-  }
+
   if(isDeload(week)){
     const v=Math.max(step, Math.min(roundStep(lastWeight*0.85,step), lastWeight-step));
-    return {value:v, tag:'deload', text:`Deload week: about 85% of your last ${lastWeight} kg. Fewer sets, crisp reps, no grinders.`, kind:'deload'};
+    return {value:v, tag:'deload', text:`Deload: about 85% of the previous ${lastWeight} kg. Keep reps crisp.`, kind:'deload'};
   }
-  const allTop=range && reps.length>=Math.min(e.sets,rows.length) && reps.every(r=>r>=range.max);
-  if(allTop && minRir>=1){
-    return {value:roundStep(lastWeight+step,step), tag:'↑ add load', text:`Every set reached the top of the rep range at ${lastWeight} kg with reps to spare.`, kind:'log'};
+
+  if(range && reps.length){
+    const minRep=Math.min(...reps);
+    const avgRep=reps.reduce((a,b)=>a+b,0)/reps.length;
+    const completeEnough=reps.length>=Math.min(e.sets,rows.length);
+
+    // If the whole session was far beyond the intended rep range, a normal
+    // one-step increase is too conservative. Use a larger percentage jump.
+    if(completeEnough && minRep>=range.max+4){
+      const v=Math.max(lastWeight+step*2, roundStep(lastWeight*1.15,step));
+      return {value:v, tag:'↑↑ too light', text:`Last time you were far above the ${range.min}–${range.max} target. Increase about 10–15% and return to the programmed rep range.`, kind:'log'};
+    }
+    if(completeEnough && (minRep>=range.max+2 || avgRep>=range.max+3)){
+      const v=Math.max(lastWeight+step, roundStep(lastWeight*1.10,step));
+      return {value:v, tag:'↑ too light', text:`Last time you clearly exceeded the ${range.min}–${range.max} target. Increase about 5–10%.`, kind:'log'};
+    }
+
+    const allTop=completeEnough && reps.every(r=>r>=range.max);
+    if(allTop && minRir>=1){
+      return {value:roundStep(lastWeight+step,step), tag:'↑ add load', text:`All sets reached ${range.max}+ reps with at least about 1 RIR. Add the normal load step.`, kind:'log'};
+    }
+
+    const belowRange=completeEnough && avgRep<range.min && minRir<=1;
+    if(belowRange){
+      const v=Math.max(step,lastWeight-step);
+      return {value:v, tag:'↓ too heavy', text:`Average reps were below the ${range.min}–${range.max} target near failure. Reduce one load step.`, kind:'log'};
+    }
   }
-  return {value:lastWeight, tag:'repeat', text:`Repeat ${lastWeight} kg and beat last time's reps before adding load.`, kind:'log'};
+
+  return {value:lastWeight, tag:'repeat', text:`Keep ${lastWeight} kg and add reps. Increase load once every set reaches the top of the range with at least about 1 RIR.`, kind:'log'};
 }
 function baselineSuggestion(e,week,day){
   const phase=phaseForWeek(week);
@@ -722,7 +743,7 @@ function baselineSuggestion(e,week,day){
     return {value:null,text:`Bodyweight, about ${reps} reps per set. Your max: ${max} clean reps.`,kind:numeric(b.chinupMax)?'baseline':'estimate'};
   }
   if(e.name==='Weighted / strict chin-up'){
-    return {value:null,text:'Start at bodyweight. When 4 × 6 is clean at 2+ RIR and pain is 2/10 or less, add 2.5 kg.',kind:'rule'};
+    return {value:null,text:'Start at bodyweight. When 4 × 6 is clean at about 1–2 RIR, add 2.5 kg.',kind:'rule'};
   }
   if(e.name==='Chest-supported DB row' || e.name==='1-arm DB row'){
     const v=numeric(b.dbRow)||16; return {value:v,text:`${v} kg per hand. Add load only once the top rep target is clean.`,kind:numeric(b.dbRow)?'baseline':'estimate'};
@@ -761,10 +782,8 @@ function suggestedLoad(e,week,day){
 }
 function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; }
 
-// Per-set targets shown as grey placeholders; the check button logs them.
-// Each set first mirrors the corresponding set from the immediately previous
-// program week. If unavailable, fall back to the most recent earlier log,
-// then to the normal suggestion/baseline.
+// Grey placeholders are today's suggested load/reps.
+// Last week's actual load/reps are displayed separately above the set grid.
 function setTargets(e, week, day, entry){
   const sug=suggestedLoad(e,week,day);
   const prevInfo=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
@@ -773,15 +792,34 @@ function setTargets(e, week, day, entry){
   const range=repRange(e.reps);
   const saved=entry.exercises?.[e.name]||[];
   const out=[];
-  for(let s=0;s<e.sets;s++){
-    const exact=rowHasData(prev[s]) ? prev[s] : null;
-    const fallback=prevRows.length ? prevRows[Math.min(s,prevRows.length-1)] : null;
-    const p=exact || fallback || {};
-    const ownW=numeric(saved[s]?.weight);
-    const ownR=numeric(saved[s]?.reps);
-    const weight = ownW ?? numeric(p.weight) ?? sug?.value ?? null;
-    const reps = ownR ?? numeric(p.reps) ?? range?.min ?? null;
-    out.push({weight, reps});
+
+  const priorWeights=prevRows.map(r=>numeric(r.weight)).filter(Boolean);
+  const priorWeight=priorWeights[0]??null;
+  const loadChanged=sug?.value!=null && priorWeight!=null && Math.abs(sug.value-priorWeight)>0.001;
+
+  // When repeating the same load, suggest only one additional total rep across
+  // the exercise rather than adding one rep to every set at once.
+  let repBumpUsed=false;
+  for(let i=0;i<e.sets;i++){
+    const p=rowHasData(prev[i]) ? prev[i] : (prevRows[Math.min(i,Math.max(0,prevRows.length-1))]||{});
+    const ownW=numeric(saved[i]?.weight);
+    const ownR=numeric(saved[i]?.reps);
+    const prevRep=numeric(p.reps);
+    let targetRep=range?.min??prevRep??null;
+
+    if(range && prevRep && !loadChanged && !repBumpUsed && prevRep<range.max){
+      targetRep=Math.min(range.max,prevRep+1);
+      repBumpUsed=true;
+    } else if(range && prevRep && !loadChanged){
+      targetRep=Math.min(range.max,Math.max(range.min,prevRep));
+    }
+
+    if(loadChanged && range) targetRep=range.min;
+
+    out.push({
+      weight:ownW ?? sug?.value ?? numeric(p.weight) ?? null,
+      reps:ownR ?? targetRep
+    });
   }
   return out;
 }
@@ -989,7 +1027,7 @@ function sessionHTML(week,day,{context='program', swapped=false, scheduled=null}
     ${warmupHTML(week,day,log)}
     ${sessionGoalsHTML(week,ex)}
     <div class="section-title">Workout</div>
-    <div class="hint-row"><span>Grey numbers are your targets. Tap ${icon('check')} to log them, or type your own.</span><span>Pain 0–2/10 continue · about 3 reduce load or range · sharp or over 3 stop.</span></div>
+    <div class="hint-row"><span>Grey numbers are today's suggested load/reps. Tap ${icon('check')} to log them, or type your own.</span><span>RIR = clean reps left before failure. If joint pain appears, reduce load/range or stop and note it.</span></div>
     <section class="card exercise-list">${ex.map((e,i)=>exerciseHTML(week,day,e,i,log,i===firstOpen)).join('')}</section>
     <div class="section-title">Notes</div>
     <section class="card">
@@ -1016,6 +1054,92 @@ function suggestionHTML(sug, hidden){
     ${sug.value!=null?`<div class="sug-line"><span>Suggested</span><strong>${sug.value} kg</strong>${tag?`<em>${tag}</em>`:''}</div>`:''}
     <div class="sug-text">${escapeHtml(sug.text)}</div></div>`;
 }
+function previousPerformance(e,week,day){
+  const prev=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
+  if(!prev) return null;
+  const rows=(prev.sets||[]).filter(rowHasData).slice(0,e.sets);
+  if(!rows.length) return null;
+  const reps=rows.map(r=>Number(r.reps)).filter(n=>Number.isFinite(n)&&n>0);
+  const weights=rows.map(r=>numeric(r.weight));
+  const realWeights=weights.filter(Boolean);
+  let load='BW';
+  if(realWeights.length){
+    const same=realWeights.every(w=>w===realWeights[0]);
+    load=same ? `${realWeights[0]} kg` : rows.map(r=>numeric(r.weight)?`${numeric(r.weight)} kg`:'BW').join(' / ');
+  }
+  return {
+    week:prev.week,
+    isLastWeek:prev.week===week-1,
+    load,
+    reps:reps.join(' / ') || '—'
+  };
+}
+function liveProgressionGuidance(e,week,day,entry){
+  const range=repRange(e.reps);
+  if(!range) return '';
+  const rows=(entry.exercises?.[e.name]||[]).slice(0,e.sets).filter(r=>rowIsComplete(e.name,r));
+  const step=loadStep(e.name);
+
+  if(!rows.length){
+    if(weightOptional(e.name)){
+      if(/Ab wheel/i.test(e.name)) return `Progress when all sets reach ${range.max} clean reps: increase rollout range or use a harder variation.`;
+      if(/Hanging knee raise/i.test(e.name)) return `Progress when all sets reach ${range.max} clean reps: move toward straighter-leg raises.`;
+      if(/Hollow rock/i.test(e.name)) return `Progress when all sets reach ${range.max} clean reps: use a longer lever or harder hollow variation.`;
+      if(isChinupExercise(e.name)) return `Build to ${range.max} reps on every set with about 1–2 RIR, then add a small external load if appropriate.`;
+    }
+    return `Increase weight once every set reaches ${range.max} reps with clean form and at least about 1 RIR.`;
+  }
+
+  const reps=rows.map(r=>Number(r.reps)).filter(n=>Number.isFinite(n)&&n>0);
+  const rirs=rows.map(r=>r.rir===''||r.rir==null?NaN:Number(r.rir)).filter(Number.isFinite);
+  const minRir=rirs.length?Math.min(...rirs):2;
+  const minRep=Math.min(...reps), avgRep=reps.reduce((a,b)=>a+b,0)/reps.length;
+  const complete=rows.length>=e.sets;
+
+  if(!complete && reps[reps.length-1]>=range.max+3 && !weightOptional(e.name)){
+    return `This set is well above the ${range.min}–${range.max} target. The load is probably too light; increase for the next set if technique is solid.`;
+  }
+  if(!complete) return `${rows.length}/${e.sets} sets logged. Stay in the ${range.min}–${range.max} range and keep roughly 1–3 clean reps in reserve.`;
+
+  if(minRep>=range.max+4 && !weightOptional(e.name)) return `Far above target: next time increase roughly 10–15% and aim back at ${range.min}–${range.max} reps.`;
+  if((minRep>=range.max+2 || avgRep>=range.max+3) && !weightOptional(e.name)) return `Clearly above target: next time increase roughly 5–10% and return to ${range.min}–${range.max} reps.`;
+  if(reps.every(r=>r>=range.max) && minRir>=1){
+    if(weightOptional(e.name)) return `Top of the range achieved. Progress the movement difficulty next time rather than chasing more reps.`;
+    return `Top of the range achieved with reps in reserve. Next time add about ${step} kg and restart near ${range.min} reps.`;
+  }
+  if(reps.every(r=>r>=range.max) && minRir<1) return `You reached the rep ceiling, but too close to failure. Repeat the load until you can do it with at least about 1 RIR.`;
+  if(avgRep<range.min && minRir<=1 && !weightOptional(e.name)) return `Below the target range near failure. Reduce about one load step next time.`;
+  return `Keep the same load and add reps next time. Increase only when all sets reach ${range.max} with at least about 1 RIR.`;
+}
+function progressionPanelBody(e,week,day,entry){
+  const prev=previousPerformance(e,week,day);
+  const sug=suggestedLoad(e,week,day);
+  const range=repRange(e.reps);
+  const suggestedLoad=sug?.value!=null ? `${sug.value} kg` : (weightOptional(e.name)?'Bodyweight':'Choose load');
+  const prevLabel=prev ? (prev.isLastWeek?'Last week':`Last logged · W${prev.week}`) : 'Last week';
+  const prevLoad=prev?.load||'—';
+  const prevReps=prev?.reps||'—';
+  const repLabel=isCarryExercise(e.name)?'distance':'reps';
+  const tag=sug?.tag || ({baseline:'baseline', estimate:'calibration',deload:'deload'})[sug?.kind] || '';
+  return `
+    <div class="progression-compare">
+      <div class="progression-cell">
+        <span>${prevLabel}</span>
+        <strong>${escapeHtml(prevLoad)}</strong>
+        <small>${escapeHtml(prevReps)} ${repLabel}</small>
+      </div>
+      <div class="progression-cell suggested-today">
+        <span>Suggested today</span>
+        <strong>${escapeHtml(suggestedLoad)}</strong>
+        <small>${escapeHtml(e.reps)} ${repLabel}${tag?` · ${escapeHtml(tag)}`:''}</small>
+      </div>
+    </div>
+    <div class="progression-guidance">${escapeHtml(liveProgressionGuidance(e,week,day,entry) || sug?.text || '')}</div>
+  `;
+}
+function progressionPanelHTML(e,week,day,entry){
+  return `<div class="progression-panel" data-progression>${progressionPanelBody(e,week,day,entry)}</div>`;
+}
 function exerciseHTML(week,day,e,index,log,open){
   const saved=log.exercises?.[e.name] || [];
   const enc=encodeURIComponent(e.name);
@@ -1023,7 +1147,6 @@ function exerciseHTML(week,day,e,index,log,open){
   const sug=suggestedLoad(e,week,day);
   const targets=setTargets(e,week,day,log);
   const done=exerciseComplete(e,log);
-  const anyDone=saved.some(r=>rowIsComplete(e.name,r));
   const unit=isCarryExercise(e.name)?'m':'reps';
   const wPh=t=>t.weight ?? (weightOptional(e.name)?'BW':'–');
   return `<details class="exercise ${done?'done':''}" data-card="${enc}" ${open?'open':''}>
@@ -1035,9 +1158,9 @@ function exerciseHTML(week,day,e,index,log,open){
     <div class="ex-body">
       <div class="ex-meta"><strong>${e.sets} sets · ${escapeHtml(e.reps)}</strong> · rest ${fmtRest(restSecondsFor(e.name))} · ${escapeHtml(e.note)}</div>
       ${videoChipsHTML(e.name)}
-      ${suggestionHTML(sug, anyDone)}
+      ${progressionPanelHTML(e,week,day,log)}
       <div class="set-grid">
-        <div></div><div class="head">kg</div><div class="head">${unit}</div><div class="head">RIR</div><div class="head">pain</div><div></div>
+        <div></div><div class="head">kg</div><div class="head">${unit}</div><div class="head">RIR</div><div></div>
         ${Array.from({length:e.sets},(_,s)=>{
           const r=saved[s]||{}, t=targets[s];
           const a=(f)=>`data-ex="${enc}" data-set="${s}" data-field="${f}"`;
@@ -1045,7 +1168,6 @@ function exerciseHTML(week,day,e,index,log,open){
             <input inputmode="decimal" ${a('weight')} value="${escapeHtml(r.weight)}" placeholder="${wPh(t)}" aria-label="Set ${s+1} load in kg">
             <input inputmode="numeric" ${a('reps')} value="${escapeHtml(r.reps)}" placeholder="${t.reps??'–'}" aria-label="Set ${s+1} ${unit}">
             <input inputmode="numeric" ${a('rir')} value="${escapeHtml(r.rir)}" placeholder="–" aria-label="Set ${s+1} reps in reserve">
-            <input inputmode="decimal" ${a('pain')} value="${escapeHtml(r.pain)}" placeholder="0" class="${Number(r.pain)>=3?'pain-high':''}" aria-label="Set ${s+1} pain out of 10">
             <button type="button" class="check-btn ${rowIsComplete(e.name,r)?'on':''}" data-check="${enc}" data-set="${s}" aria-label="Log set ${s+1}">${icon('check')}</button>`;
         }).join('')}
       </div>
@@ -1089,8 +1211,8 @@ function bindSessionInputs(week,day){
     }
     const sug=suggestedLoad(e,week,day);
     card.querySelector('[data-summary]').innerHTML=exerciseSummary(e,entry,sug);
-    const sugEl=card.querySelector('[data-suggestion]');
-    if(sugEl) sugEl.hidden=(entry.exercises?.[name]||[]).some(r=>rowIsComplete(name,r));
+    const progEl=card.querySelector('[data-progression]');
+    if(progEl) progEl.innerHTML=progressionPanelBody(e,week,day,entry);
     const wasDone=card.classList.contains('done'), nowDone=exerciseComplete(e,entry);
     card.classList.toggle('done',nowDone);
     card.querySelector('.ex-index').innerHTML=nowDone?icon('check'):String(exercises.indexOf(e)+1);
@@ -1131,11 +1253,6 @@ function bindSessionInputs(week,day){
 
   app.querySelectorAll('[data-ex]').forEach(inp=>inp.addEventListener('change',()=>{
     const name=decodeURIComponent(inp.dataset.ex);
-    if(inp.dataset.field==='pain'){
-      const high=Number(inp.value)>=3;
-      inp.classList.toggle('pain-high',high);
-      if(high) toast('Pain 3+/10: reduce load or range. Stop if sharp.');
-    }
     registerSet(name,Number(inp.dataset.set));
   }));
   app.querySelectorAll('[data-check]').forEach(btn=>btn.addEventListener('click',()=>{
