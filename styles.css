@@ -352,9 +352,9 @@ dialog::backdrop { background:rgba(10,14,21,.55); backdrop-filter:blur(4px); -we
   --accent:#f0444d;
   --accent-soft:rgba(240,68,77,.13);
   --accent-ink:#ff9ba1;
-  --good:#65d8a5;
-  --good-soft:rgba(74,222,128,.12);
-  --good-solid:#2fc27b;
+  --good:#ff9ba1;
+  --good-soft:rgba(240,68,77,.13);
+  --good-solid:#f0444d;
   --warn:#f0b34c;
   --warn-soft:rgba(240,179,76,.10);
   --warn-line:rgba(240,179,76,.28);
@@ -438,7 +438,7 @@ h2,h3 { font-weight:900; letter-spacing:-.02em; }
   border:1px solid #2e3036;
 }
 .badge.on-dark { background:#25262b; color:#d9dade; border-color:#33353b; }
-.badge.good { background:var(--good-soft); color:var(--good); border-color:rgba(74,222,128,.18); }
+.badge.good { background:var(--good-soft); color:var(--good); border-color:rgba(240,68,77,.24); }
 .goal-badge { background:var(--accent-soft); color:#ff979e; border:0; }
 
 .primary,.hero-btn {
@@ -526,16 +526,16 @@ h2,h3 { font-weight:900; letter-spacing:-.02em; }
   border-color:var(--accent);
 }
 .exercise.done .ex-index {
-  background:#202b27;
+  background:rgba(240,68,77,.10);
   color:var(--good);
-  border-color:#2a453a;
+  border-color:rgba(240,68,77,.24);
 }
 .exercise.done[open] .ex-index {
   background:var(--good-solid);
   color:#fff;
   border-color:var(--good-solid);
 }
-.exercise.done .ex-sub { color:#79d9ac; }
+.exercise.done .ex-sub { color:#ff9ba1; }
 
 .progression-panel {
   background:#1d1e22;
