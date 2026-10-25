@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.8';
+const APP_VERSION = '5.9';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -672,53 +672,93 @@ function previousExerciseLog(exerciseName, week, day){
   });
   return best || bestAny;
 }
+function workingLoadProfile(e, rows){
+  const range=repRange(e.reps);
+  const weighted=rows
+    .map((r,index)=>({row:r,index,weight:numeric(r.weight),reps:Number(r.reps)}))
+    .filter(x=>x.weight && Number.isFinite(x.reps) && x.reps>0);
+  if(!weighted.length) return null;
+
+  const groups=new Map();
+  weighted.forEach(x=>{
+    const key=String(x.weight);
+    if(!groups.has(key)) groups.set(key,{weight:x.weight,items:[]});
+    groups.get(key).items.push(x);
+  });
+
+  const ranked=[...groups.values()].sort((a,b)=>{
+    // Repeated loads are the strongest signal of the real working weight.
+    if(b.items.length!==a.items.length) return b.items.length-a.items.length;
+
+    // With a tie, prefer a load that actually landed in/above the programmed range.
+    if(range){
+      const aUsable=a.items.some(x=>x.reps>=range.min)?1:0;
+      const bUsable=b.items.some(x=>x.reps>=range.min)?1:0;
+      if(bUsable!==aUsable) return bUsable-aUsable;
+    }
+
+    // If still tied, the heavier successful set is usually the better working reference.
+    return b.weight-a.weight;
+  });
+
+  const chosen=ranked[0];
+  const reps=chosen.items.map(x=>x.reps);
+  const rirs=chosen.items
+    .map(x=>x.row.rir===''||x.row.rir==null?NaN:Number(x.row.rir))
+    .filter(Number.isFinite);
+
+  return {
+    weight:chosen.weight,
+    rows:chosen.items.map(x=>x.row),
+    count:chosen.items.length,
+    reps,
+    minRep:Math.min(...reps),
+    avgRep:reps.reduce((a,b)=>a+b,0)/reps.length,
+    minRir:rirs.length?Math.min(...rirs):2
+  };
+}
+
 function progressionFromLast(e, week, day){
   const prev=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
   if(!prev) return null;
   const rows=prev.sets.filter(rowHasData); if(!rows.length) return null;
-  const weights=rows.map(r=>numeric(r.weight)).filter(Boolean);
-  if(!weights.length) return null;
-  const lastWeight=weights[0];
-  const rirs=rows.map(r=>r.rir===''||r.rir==null?NaN:Number(r.rir)).filter(Number.isFinite);
-  const reps=rows.map(r=>Number(r.reps)).filter(n=>Number.isFinite(n)&&n>0);
+  const profile=workingLoadProfile(e,rows);
+  if(!profile) return null;
+
+  const workingWeight=profile.weight;
+  const reps=profile.reps;
   const range=repRange(e.reps);
-  const minRir=rirs.length?Math.min(...rirs):2;
+  const minRir=profile.minRir;
   const step=loadStep(e.name);
 
   if(isDeload(week)){
-    const v=Math.max(step, Math.min(roundStep(lastWeight*0.85,step), lastWeight-step));
-    return {value:v, tag:'deload', text:`Deload: about 85% of the previous ${lastWeight} kg. Keep reps crisp.`, kind:'deload'};
+    const v=Math.max(step, Math.min(roundStep(workingWeight*0.85,step), workingWeight-step));
+    return {value:v, referenceWeight:workingWeight, tag:'deload', text:`Deload: about 85% of the previous working load (${workingWeight} kg). Keep reps crisp.`, kind:'deload'};
   }
 
   if(range && reps.length){
-    const minRep=Math.min(...reps);
-    const avgRep=reps.reduce((a,b)=>a+b,0)/reps.length;
-    const completeEnough=reps.length>=Math.min(e.sets,rows.length);
-
-    // If the whole session was far beyond the intended rep range, a normal
-    // one-step increase is too conservative. Use a larger percentage jump.
-    if(completeEnough && minRep>=range.max+4){
-      const v=Math.max(lastWeight+step*2, roundStep(lastWeight*1.15,step));
-      return {value:v, tag:'↑↑ too light', text:`Last time you were far above the ${range.min}–${range.max} target. Increase about 10–15% and return to the programmed rep range.`, kind:'log'};
+    // Use the actual working sets, not a lighter first/ramp set, for progression.
+    if(profile.minRep>=range.max+4){
+      const v=Math.max(workingWeight+step*2, roundStep(workingWeight*1.15,step));
+      return {value:v, referenceWeight:workingWeight, tag:'↑↑ too light', text:`Your working sets at ${workingWeight} kg were far above the ${range.min}–${range.max} target. Increase about 10–15%.`, kind:'log'};
     }
-    if(completeEnough && (minRep>=range.max+2 || avgRep>=range.max+3)){
-      const v=Math.max(lastWeight+step, roundStep(lastWeight*1.10,step));
-      return {value:v, tag:'↑ too light', text:`Last time you clearly exceeded the ${range.min}–${range.max} target. Increase about 5–10%.`, kind:'log'};
+    if(profile.minRep>=range.max+2 || profile.avgRep>=range.max+3){
+      const v=Math.max(workingWeight+step, roundStep(workingWeight*1.10,step));
+      return {value:v, referenceWeight:workingWeight, tag:'↑ too light', text:`Your working sets at ${workingWeight} kg clearly exceeded the ${range.min}–${range.max} target. Increase about 5–10%.`, kind:'log'};
     }
 
-    const allTop=completeEnough && reps.every(r=>r>=range.max);
+    const allTop=reps.every(r=>r>=range.max);
     if(allTop && minRir>=1){
-      return {value:roundStep(lastWeight+step,step), tag:'↑ add load', text:`All sets reached ${range.max}+ reps with at least about 1 RIR. Add the normal load step.`, kind:'log'};
+      return {value:roundStep(workingWeight+step,step), referenceWeight:workingWeight, tag:'↑ add load', text:`The working sets at ${workingWeight} kg reached ${range.max}+ reps with at least about 1 RIR. Add the normal load step.`, kind:'log'};
     }
 
-    const belowRange=completeEnough && avgRep<range.min && minRir<=1;
-    if(belowRange){
-      const v=Math.max(step,lastWeight-step);
-      return {value:v, tag:'↓ too heavy', text:`Average reps were below the ${range.min}–${range.max} target near failure. Reduce one load step.`, kind:'log'};
+    if(profile.avgRep<range.min && minRir<=1){
+      const v=Math.max(step,workingWeight-step);
+      return {value:v, referenceWeight:workingWeight, tag:'↓ too heavy', text:`The working sets at ${workingWeight} kg averaged below the ${range.min}–${range.max} target near failure. Reduce one load step.`, kind:'log'};
     }
   }
 
-  return {value:lastWeight, tag:'repeat', text:`Keep ${lastWeight} kg and add reps. Increase load once every set reaches the top of the range with at least about 1 RIR.`, kind:'log'};
+  return {value:workingWeight, referenceWeight:workingWeight, tag:'repeat', text:`Keep the ${workingWeight} kg working load and add reps. Increase once the working sets reach the top of the range with at least about 1 RIR.`, kind:'log'};
 }
 function baselineSuggestion(e,week,day){
   const phase=phaseForWeek(week);
@@ -787,37 +827,76 @@ function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; 
 function setTargets(e, week, day, entry){
   const sug=suggestedLoad(e,week,day);
   const prevInfo=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
-  const prev=prevInfo?.sets||[];
-  const prevRows=prev.filter(rowHasData);
+  const prev=(prevInfo?.sets||[]).filter(rowHasData);
   const range=repRange(e.reps);
   const saved=entry.exercises?.[e.name]||[];
   const out=[];
 
-  const priorWeights=prevRows.map(r=>numeric(r.weight)).filter(Boolean);
-  const priorWeight=priorWeights[0]??null;
-  const loadChanged=sug?.value!=null && priorWeight!=null && Math.abs(sug.value-priorWeight)>0.001;
+  const profile=workingLoadProfile(e,prev);
+  const workingWeight=profile?.weight ?? sug?.referenceWeight ?? sug?.value ?? null;
+  const suggestedWorkingWeight=sug?.value ?? workingWeight;
 
-  // When repeating the same load, suggest only one additional total rep across
-  // the exercise rather than adding one rep to every set at once.
+  // Progress one rep at a time when the working load stays the same.
   let repBumpUsed=false;
+
   for(let i=0;i<e.sets;i++){
-    const p=rowHasData(prev[i]) ? prev[i] : (prevRows[Math.min(i,Math.max(0,prevRows.length-1))]||{});
+    const p=prev[i] || prev[prev.length-1] || {};
     const ownW=numeric(saved[i]?.weight);
     const ownR=numeric(saved[i]?.reps);
-    const prevRep=numeric(p.reps);
-    let targetRep=range?.min??prevRep??null;
+    const prevW=numeric(p.weight);
+    const prevR=numeric(p.reps);
+    const prevRir=p.rir===''||p.rir==null?null:Number(p.rir);
 
-    if(range && prevRep && !loadChanged && !repBumpUsed && prevRep<range.max){
-      targetRep=Math.min(range.max,prevRep+1);
-      repBumpUsed=true;
-    } else if(range && prevRep && !loadChanged){
-      targetRep=Math.min(range.max,Math.max(range.min,prevRep));
+    let targetWeight=suggestedWorkingWeight ?? prevW ?? null;
+    let targetRep=range?.min ?? prevR ?? null;
+
+    if(weightOptional(e.name)){
+      targetWeight=null;
+      if(range && prevR){
+        targetRep=Math.min(range.max,Math.max(range.min,prevR+(repBumpUsed?0:1)));
+        if(prevR<range.max && !repBumpUsed) repBumpUsed=true;
+      }
+    } else if(range && prevW && prevR){
+      const step=loadStep(e.name);
+
+      // A lighter set that overshot the rep ceiling was not an appropriate
+      // work-set load. Bring it up to at least the identified working load.
+      if(workingWeight && prevW<workingWeight && prevR>range.max){
+        targetWeight=Math.max(workingWeight,suggestedWorkingWeight||workingWeight);
+        targetRep=range.min;
+      }
+      // If this exact set was far too light, progress it more aggressively.
+      else if(prevR>=range.max+4){
+        targetWeight=Math.max(prevW+step*2,roundStep(prevW*1.15,step),suggestedWorkingWeight||0);
+        targetRep=range.min;
+      }
+      else if(prevR>=range.max+2){
+        targetWeight=Math.max(prevW+step,roundStep(prevW*1.10,step),suggestedWorkingWeight||0);
+        targetRep=range.min;
+      }
+      // Below the range at/near failure: back off one step for that set.
+      else if(prevR<range.min && prevRir!=null && prevRir<=1){
+        targetWeight=Math.max(step,prevW-step);
+        targetRep=range.min;
+      }
+      // If the global working load increased, restart near the bottom of range.
+      else if(suggestedWorkingWeight && workingWeight && suggestedWorkingWeight>workingWeight){
+        targetWeight=Math.max(prevW,suggestedWorkingWeight);
+        targetRep=range.min;
+      }
+      // Otherwise preserve the set's actual load and progress reps gradually.
+      else{
+        targetWeight=prevW;
+        targetRep=Math.min(range.max,Math.max(range.min,prevR));
+        if(prevR<range.max && !repBumpUsed){
+          targetRep=Math.min(range.max,prevR+1);
+          repBumpUsed=true;
+        }
+      }
     }
 
-    if(loadChanged && range) targetRep=range.min;
-
     out.push({
-      weight:ownW ?? sug?.value ?? numeric(p.weight) ?? null,
+      weight:ownW ?? targetWeight,
       reps:ownR ?? targetRep
     });
   }
@@ -1114,13 +1193,20 @@ function liveProgressionGuidance(e,week,day,entry){
 function progressionPanelBody(e,week,day,entry){
   const prev=previousPerformance(e,week,day);
   const sug=suggestedLoad(e,week,day);
-  const range=repRange(e.reps);
-  const suggestedLoadText=sug?.value!=null ? `${sug.value} kg` : (weightOptional(e.name)?'Bodyweight':'Choose load');
+  const targets=setTargets(e,week,day,entry);
   const prevLabel=prev ? (prev.isLastWeek?'Last week':`Last logged · W${prev.week}`) : 'Last week';
   const prevLoad=prev?.load||'—';
   const prevReps=prev?.reps||'—';
   const repLabel=isCarryExercise(e.name)?'distance':'reps';
   const tag=sug?.tag || ({baseline:'baseline', estimate:'calibration',deload:'deload'})[sug?.kind] || '';
+
+  const targetWeights=targets.map(t=>t.weight).filter(v=>v!=null);
+  const allSameWeight=targetWeights.length && targetWeights.every(v=>v===targetWeights[0]);
+  const suggestedLoadText=targetWeights.length
+    ? (allSameWeight ? `${targetWeights[0]} kg` : targets.map(t=>t.weight!=null?`${t.weight}`:'BW').join(' / ')+' kg')
+    : (weightOptional(e.name)?'Bodyweight':'Choose load');
+  const suggestedRepText=targets.map(t=>t.reps??'—').join(' / ');
+
   return `
     <div class="progression-compare">
       <div class="progression-cell">
@@ -1131,7 +1217,7 @@ function progressionPanelBody(e,week,day,entry){
       <div class="progression-cell suggested-today">
         <span>Suggested today</span>
         <strong>${escapeHtml(suggestedLoadText)}</strong>
-        <small>${escapeHtml(e.reps)} ${repLabel}${tag?` · ${escapeHtml(tag)}`:''}</small>
+        <small>${escapeHtml(suggestedRepText)} ${repLabel}${tag?` · ${escapeHtml(tag)}`:''}</small>
       </div>
     </div>
     <div class="progression-guidance">${escapeHtml(liveProgressionGuidance(e,week,day,entry) || sug?.text || '')}</div>
