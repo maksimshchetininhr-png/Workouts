@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.4';
+const APP_VERSION = '5.5';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -124,14 +124,15 @@ const basePrograms = {
       ['Chest-supported DB row',3,'8–12','Strict, chest supported.'],
       ['Hammer curl',2,'8–12','Direct biceps work without excessive fatigue.'],
       ['DB triceps extension / kickback',2,'10–15','Choose the pain-free shoulder-friendly option.'],
-      ['Farmer carry',2,'30–40 m','Heavy, ribs down, shoulders relaxed.']
+      ['Farmer carry',2,'30–40 m','Heavy, ribs down, shoulders relaxed.'],
+      ['Ab wheel',3,'6–12','Gymnastics-style anti-extension core. Keep ribs down and stop before the lower back arches.']
     ],
     sun: [
       ['DB lateral raise',3,'12–20','Strict reps; no shrugging.'],
       ['DB scaption',3,'10–15','Pain-free scapular plane.'],
       ['Rear-delt raise',2,'12–20','Chest-supported if possible.'],
       ['Band triceps pressdown',3,'12–20','Shoulder-friendly triceps volume.'],
-      ['Ab wheel / hanging knee raise',3,'6–15','Controlled; alternate as preferred.']
+      ['Hanging knee raise',3,'8–15','Controlled; no swinging. Progress toward straighter-leg raises only if the shoulder stays calm.']
     ],
     wed: [
       ['Deadlift technique',2,'5','Light technique exposure at about 60–70% of Saturday; ~4 RIR.'],
@@ -141,7 +142,7 @@ const basePrograms = {
       ['Cable lateral raise',2,'12–20','Second weekly delt exposure; smooth pain-free reps.'],
       ['Cable curl',3,'8–12','Second direct biceps exposure.'],
       ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure; no shoulder compensation.'],
-      ['Pallof press',2,'10–15/side','Second weekly core exposure; controlled anti-rotation.']
+      ['Hollow rock',3,'10–20','Gymnastics core control. Keep the lower back pressed down and make each rock smooth.']
     ]
   },
   2: {
@@ -151,14 +152,15 @@ const basePrograms = {
       ['Chest-supported DB row',2,'8–12','Back maintenance without excess fatigue.'],
       ['Hammer curl',3,'8–12','Direct biceps volume.'],
       ['DB triceps extension / kickback',3,'10–15','Direct triceps volume; pain-free option only.'],
-      ['Farmer carry',2,'30–40 m','Grip + trunk + loaded carry.']
+      ['Farmer carry',2,'30–40 m','Grip + trunk + loaded carry.'],
+      ['Ab wheel',3,'6–12','Gymnastics-style anti-extension core. Keep ribs down and stop before the lower back arches.']
     ],
     sun: [
       ['DB lateral raise',3,'12–20','Primary lateral-delt work.'],
       ['DB scaption',2,'10–15','Pain-free shoulder-capacity work.'],
       ['Rear-delt raise',2,'12–20','Controlled; chest-supported if possible.'],
       ['Band triceps pressdown',4,'12–20','Main triceps-volume movement.'],
-      ['Ab wheel / hanging knee raise',3,'6–15','Controlled trunk work.']
+      ['Hanging knee raise',3,'8–15','Controlled; no swinging. Progress toward straighter-leg raises only if the shoulder stays calm.']
     ],
     wed: [
       ['Machine chest press',3,'8–12','Only if pain-free.'],
@@ -167,7 +169,7 @@ const basePrograms = {
       ['Cable rear-delt fly',2,'12–20','Light and controlled.'],
       ['Cable curl',3,'8–12','Second direct biceps exposure.'],
       ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure.'],
-      ['Pallof press',2,'10–15/side','Second weekly core exposure; controlled anti-rotation.']
+      ['Hollow rock',3,'10–20','Gymnastics core control. Keep the lower back pressed down and make each rock smooth.']
     ]
   },
   3: {
@@ -177,7 +179,8 @@ const basePrograms = {
       ['Farmer carry',3,'30–40 m','Progress total load.'],
       ['Chest-supported DB row',2,'8–10','Keep back strength without crowding arm work.'],
       ['Hammer curl',2,'8–12','Direct biceps strength-hypertrophy work.'],
-      ['DB triceps extension / kickback',2,'10–15','Direct triceps work; pain-free option only.']
+      ['DB triceps extension / kickback',2,'10–15','Direct triceps work; pain-free option only.'],
+      ['Ab wheel',3,'6–12','Gymnastics-style anti-extension core. Keep ribs down and stop before the lower back arches.']
     ],
     sun: [
       ['DB lateral raise',3,'12–20','Upper-body hypertrophy.'],
@@ -185,7 +188,7 @@ const basePrograms = {
       ['Rear-delt raise',2,'12–20','Controlled.'],
       ['Band triceps pressdown',3,'12–20','Main triceps hypertrophy work.'],
       ['Suitcase carry',2,'30 m/side','Anti-lateral-flexion trunk + grip.'],
-      ['Hanging knee raise',3,'8–15','No swinging.']
+      ['Hanging knee raise',3,'8–15','No swinging. Progress toward straighter-leg raises only if the shoulder stays calm.']
     ],
     wed: [
       ['Deadlift technique',2,'3–5','Light technique exposure at about 60–70% of Saturday; keep it easy.'],
@@ -195,7 +198,7 @@ const basePrograms = {
       ['Cable lateral raise',2,'12–20','Second weekly delt exposure; shoulder-friendly hypertrophy work.'],
       ['Cable curl',3,'8–12','Second direct biceps exposure.'],
       ['Cable triceps pushdown',3,'10–15','Second direct triceps exposure.'],
-      ['Pallof press',2,'10–15/side','Second weekly core exposure; controlled anti-rotation.']
+      ['Hollow rock',3,'10–20','Gymnastics core control. Keep the lower back pressed down and make each rock smooth.']
     ]
   }
 };
@@ -257,6 +260,7 @@ const movementVideos = {
   'Hammer curl': [{label:'Hammer curl', url:'https://www.youtube.com/watch?v=XOEL4MgekYE'}],
   'Ab wheel': [{label:'Ab wheel', url:'https://www.youtube.com/watch?v=OJIWMlLa38Q'}],
   'Hanging knee raise': [{label:'Hanging knee raise', url:'https://support.runna.com/en/articles/6376285-hanging-knee-raise-exercise-tutorial'}],
+  'Hollow rock': [{label:'Hollow rock', url:'https://www.youtube.com/watch?v=SfkuOb_1GK8'}],
   'Seated or cable row': [{label:'Seated cable row', url:'https://www.youtube.com/watch?v=UCXxvVItLoM'}],
   'Leg curl': [{label:'Leg curl', url:'https://www.youtube.com/watch?v=jobEeklwrrs'}],
   'Cable triceps pushdown': [{label:'Cable triceps pushdown', url:'https://www.youtube.com/watch?v=_w-HpW70nSQ'}],
@@ -468,7 +472,7 @@ function restSecondsFor(name){
   return 60;
 }
 function weightOptional(name){
-  return /chin-up|GHD hip extension|Ab wheel|hanging knee raise|Band external rotation|Pallof press|Band triceps/i.test(name);
+  return /chin-up|GHD hip extension|Ab wheel|hanging knee raise|Hollow rock|Band external rotation|Pallof press|Band triceps/i.test(name);
 }
 function rowIsComplete(name,row){
   const reps=Number(row?.reps);
