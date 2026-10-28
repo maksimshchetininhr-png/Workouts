@@ -469,9 +469,12 @@ function applyOneTimeDataFixes(){
     'Cable curl':'Hammer curl',
     'Cable triceps pushdown':'DB triceps extension / kickback'
   };
-  const migrateWed=(week,date)=>{
+  const migrateWed=(date)=>{
     const fixKey=`fixed-${date}-wed-cf-gym-v1`;
     if(meta?.[fixKey]) return;
+    const dateObj=parseLocalDate(date);
+    const week=getProgramWeek(dateObj);
+    if(week<1 || week>12 || dayKeyFromDate(dateObj)!=='wed') return;
     const key=logKey(week,'wed');
     const entry=logs[key];
     if(!entry || !hasData(entry)) return;
@@ -490,8 +493,8 @@ function applyOneTimeDataFixes(){
     meta[fixKey]={applied:true,week,day:'wed',date,gymType:'cf'};
     saveJSON(STORAGE.meta,meta);
   };
-  migrateWed(1,'2026-10-14');
-  migrateWed(2,'2026-10-21');
+  migrateWed('2026-10-14');
+  migrateWed('2026-10-21');
 }
 function clampWeek(w){ return Math.max(1, Math.min(12, w)); }
 function cycleForWeek(w){ return w <= 4 ? 1 : w <= 8 ? 2 : 3; }
@@ -622,7 +625,8 @@ function restSecondsFor(name){
   if(/Weighted \/ strict chin-up/i.test(name)) return 180;
   if(/Strict chin-up/i.test(name)) return 150;
   if(/Hip thrust/i.test(name)) return 150;
-  if(/Machine chest press|Chest-supported DB row|1-arm DB row|Seated or cable row|Cable row|Farmer carry|Suitcase carry/i.test(name)) return 120;
+  if(/Machine chest press|DB bench press|Chest-supported DB row|1-arm DB row|Seated or cable row|Cable row|Farmer carry|Suitcase carry/i.test(name)) return 120;
+  if(/Ring row/i.test(name)) return 90;
   if(/GHD hip extension|Leg curl|lateral raise|scaption|Hammer curl|Rear-delt|triceps|Cable curl|rear-delt fly/i.test(name)) return 90;
   return 60;
 }
