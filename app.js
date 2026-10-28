@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.15';
+const APP_VERSION = '5.16';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -203,6 +203,38 @@ const basePrograms = {
   }
 };
 
+const cfWednesdayPrograms = {
+  1: [
+    ['Deadlift technique',2,'5','Light technique exposure at about 60–70% of Saturday; ~4 RIR.'],
+    ['DB bench press',4,'8–12','Neutral or comfortable grip; use only a pain-free shoulder range.'],
+    ['Hip thrust',3,'8–12','Moderately heavy; main secondary lower-body lift.'],
+    ['Ring row',3,'8–12','Strict body line; make the angle harder as reps improve.'],
+    ['DB lateral raise',2,'12–20','Strict reps; no shrugging.'],
+    ['Hammer curl',3,'8–12','Strict direct biceps work.'],
+    ['DB triceps extension / kickback',3,'10–15','Choose the shoulder-friendly DB option.'],
+    ['Hollow rock',3,'10–20','Keep the lower back pressed down and make each rock smooth.']
+  ],
+  2: [
+    ['DB bench press',3,'8–12','Neutral or comfortable grip; use only a pain-free shoulder range.'],
+    ['Hip thrust',3,'8–12','Posterior-chain maintenance.'],
+    ['Ring row',3,'8–12','Strict body line; make the angle harder as reps improve.'],
+    ['DB lateral raise',3,'12–20','Primary Wednesday delt work.'],
+    ['Hammer curl',3,'8–12','Strict direct biceps work.'],
+    ['DB triceps extension / kickback',3,'10–15','Choose the shoulder-friendly DB option.'],
+    ['Hollow rock',3,'10–20','Keep the lower back pressed down and make each rock smooth.']
+  ],
+  3: [
+    ['Deadlift technique',2,'3–5','Light technique exposure at about 60–70% of Saturday; keep it easy.'],
+    ['Hip thrust',3,'6–10','Strong secondary hip-extension movement.'],
+    ['DB bench press',3,'8–12','Neutral or comfortable grip; use only a pain-free shoulder range.'],
+    ['Ring row',3,'8–12','Strict body line; progress the body angle before adding load.'],
+    ['DB lateral raise',2,'12–20','Second weekly delt exposure.'],
+    ['Hammer curl',3,'8–12','Strict direct biceps work.'],
+    ['DB triceps extension / kickback',3,'10–15','Choose the shoulder-friendly DB option.'],
+    ['Hollow rock',3,'10–20','Keep the lower back pressed down and make each rock smooth.']
+  ]
+};
+
 const goalMap = {
   1: {
     'Deadlift': 'Cycle goal: build your clean 5–7 rep working load. By Week 3 aim for more reps or ~+5 kg at similar RIR and pain.',
@@ -211,6 +243,7 @@ const goalMap = {
     'Cable curl': 'Arm goal: progress reps first, then the smallest load increase while keeping full elbow flexion.',
     'Deadlift technique': 'Technique goal: practice crisp setup, bracing and bar path without fatigue; this is not a hard set day.',
     'Machine chest press': 'Secondary goal: reach all prescribed sets at 12 reps pain-free before increasing the stack.',
+    'DB bench press': 'CF-gym press goal: build clean pain-free 8–12 rep sets, then increase the dumbbells by the smallest available step.',
     'Cable lateral raise': 'Secondary shoulder goal: build clean pain-free reps on the Wednesday delt exposure before adding load.'
   },
   2: {
@@ -222,6 +255,7 @@ const goalMap = {
     'Cable triceps pushdown': 'Arm goal: progress triceps load/reps with no shoulder compensation.',
     'Cable curl': 'Arm goal: add reps, then load, while maintaining strict form.',
     'Machine chest press': 'Secondary goal: maintain or slowly progress pain-free pressing capacity.',
+    'DB bench press': 'CF-gym press goal: maintain or slowly progress pain-free 8–12 rep dumbbell pressing.',
     'Cable lateral raise': 'Cycle goal: use Wednesday as the second shoulder session; progress reps first, then load without irritation.'
   },
   3: {
@@ -234,6 +268,7 @@ const goalMap = {
     'Cable triceps pushdown': 'Arm goal: finish the cycle with your strongest pain-free 10–15 rep pushdown sets.',
     'Deadlift technique': 'Technique goal: reinforce the Saturday deadlift pattern without adding meaningful fatigue.',
     'Hip thrust': 'Secondary strength goal: progress a strong 6–10 rep hip-extension pattern while the knee stays calm.',
+    'DB bench press': 'CF-gym press goal: progress clean pain-free 8–12 rep dumbbell sets without forcing the shoulder.',
     'Cable lateral raise': 'Secondary shoulder goal: maintain or improve delt size with a second weekly pain-free exposure.'
   }
 };
@@ -250,6 +285,8 @@ const movementVideos = {
   'GHD hip extension': [{label:'GHD hip extension', url:'https://www.youtube.com/watch?v=yCoUpLutVo8'}],
   'Chest-supported DB row': [{label:'Chest-supported row', url:'https://www.youtube.com/watch?v=0UBRfiO4zDs'}],
   'Machine chest press': [{label:'Machine chest press', url:'https://www.youtube.com/watch?v=NwzUje3z0qY'}],
+  'DB bench press': [{label:'DB bench press', url:'https://www.youtube.com/watch?v=VmB1G1K7v94'}],
+  'Ring row': [{label:'Ring row', url:'https://www.youtube.com/watch?v=sEAOZc77wk8'}],
   'Bodyweight glute bridge': [{label:'Glute bridge demos', url:'https://bretcontreras.com/the-evolution-of-the-hip-thrust/'}],
   'DB lateral raise': [{label:'DB lateral raise', url:'https://www.youtube.com/watch?v=4hTUCDUQaNA'}],
   'DB scaption': [{label:'DB scaption', url:'https://tigerfitness.com/blogs/exercise-database/dumbbell-scaption'}],
@@ -295,6 +332,7 @@ const movementVideoAliases = {
   'Deadlift ramp-up':'Deadlift',
   'Light DB row':'Chest-supported DB row',
   'Machine chest press ramp-up':'Machine chest press',
+  'DB bench press ramp-up':'DB bench press',
   'Very light lateral raise':'DB lateral raise',
   'Light scaption':'DB scaption',
   'Light cable lateral raise':'Cable lateral raise',
@@ -349,7 +387,7 @@ const benchmarkRows = [
 const trendLifts = [
   {label:'Deadlift', names:['Deadlift'], mode:'load'},
   {label:'Chin-up', names:['Strict chin-up','Weighted / strict chin-up'], mode:'reps'},
-  {label:'Chest press', names:['Machine chest press'], mode:'load'},
+  {label:'Chest press', names:['Machine chest press','DB bench press'], mode:'load'},
   {label:'Hip thrust', names:['Hip thrust'], mode:'load'},
   {label:'Farmer carry', names:['Farmer carry'], mode:'load'},
   {label:'Lateral raise', names:['DB lateral raise'], mode:'load'},
@@ -398,32 +436,62 @@ function saveJSON(key, value){ localStorage.setItem(key, JSON.stringify(value));
 
 // One-time personal data corrections requested by the user.
 function applyOneTimeDataFixes(){
-  const fixKey='fixed-2026-10-24-workout-duration-60m-v1';
-  if(meta?.[fixKey]) return;
-
-  const targetDate=new Date(2026,9,24,12);
-  const week=getProgramWeek(targetDate);
-  const day=dayKeyFromDate(targetDate);
-  const key=logKey(week,day);
-  const entry=logs[key];
-
-  if(entry?.startedAt){
-    const startMs=new Date(entry.startedAt).getTime();
-    if(Number.isFinite(startMs)){
-      const endISO=new Date(startMs+60*60*1000).toISOString();
-      entry.endedAt=endISO;
-      entry.finishedAt=endISO;
-      entry.completed=true;
-      logs[key]=entry;
-      saveJSON(STORAGE.logs,logs);
-      meta[fixKey]={applied:true,week,day,date:'2026-10-24',durationMinutes:60};
-      saveJSON(STORAGE.meta,meta);
-      return;
+  // Requested correction: Saturday 24 Oct 2026 should be exactly 60 minutes.
+  const durationFixKey='fixed-2026-10-24-workout-duration-60m-v1';
+  if(!meta?.[durationFixKey]){
+    const targetDate=new Date(2026,9,24,12);
+    const week=getProgramWeek(targetDate);
+    const day=dayKeyFromDate(targetDate);
+    const key=logKey(week,day);
+    const entry=logs[key];
+    if(entry?.startedAt){
+      const startMs=new Date(entry.startedAt).getTime();
+      if(Number.isFinite(startMs)){
+        const endISO=new Date(startMs+60*60*1000).toISOString();
+        entry.endedAt=endISO;
+        entry.finishedAt=endISO;
+        entry.completed=true;
+        logs[key]=entry;
+        saveJSON(STORAGE.logs,logs);
+        meta[durationFixKey]={applied:true,week,day,date:'2026-10-24',durationMinutes:60};
+        saveJSON(STORAGE.meta,meta);
+      }
     }
   }
 
-  // Leave it pending if the local session is not available yet; it can apply
-  // after the correct device restores/loads that workout data.
+  // Requested corrections: Wed 14 Oct and Wed 21 Oct were done at the CF gym.
+  const renameToCf={
+    'Machine chest press':'DB bench press',
+    'Seated or cable row':'Ring row',
+    'Cable row':'Ring row',
+    'Cable rear-delt fly':'Ring row',
+    'Cable lateral raise':'DB lateral raise',
+    'Cable curl':'Hammer curl',
+    'Cable triceps pushdown':'DB triceps extension / kickback'
+  };
+  const migrateWed=(week,date)=>{
+    const fixKey=`fixed-${date}-wed-cf-gym-v1`;
+    if(meta?.[fixKey]) return;
+    const key=logKey(week,'wed');
+    const entry=logs[key];
+    if(!entry || !hasData(entry)) return;
+
+    entry.exercises=entry.exercises||{};
+    Object.entries(renameToCf).forEach(([oldName,newName])=>{
+      const oldRows=entry.exercises[oldName];
+      if(!oldRows?.some(rowHasData)) return;
+      const newRows=entry.exercises[newName];
+      if(!newRows?.some(rowHasData)) entry.exercises[newName]=oldRows;
+      delete entry.exercises[oldName];
+    });
+    entry.gymType='cf';
+    logs[key]=entry;
+    saveJSON(STORAGE.logs,logs);
+    meta[fixKey]={applied:true,week,day:'wed',date,gymType:'cf'};
+    saveJSON(STORAGE.meta,meta);
+  };
+  migrateWed(1,'2026-10-14');
+  migrateWed(2,'2026-10-21');
 }
 function clampWeek(w){ return Math.max(1, Math.min(12, w)); }
 function cycleForWeek(w){ return w <= 4 ? 1 : w <= 8 ? 2 : 3; }
@@ -490,9 +558,35 @@ function nextTrainingDate(from=new Date()){
   }
   return null;
 }
+function gymTypeForSession(week,day){
+  if(day!=='wed') return 'cf';
+  return logs[logKey(week,day)]?.gymType === 'cf' ? 'cf' : 'regular';
+}
+function getWarmup(week,day){
+  const list=warmups[cycleForWeek(week)][day].map(x=>[...x]);
+  if(day==='wed' && gymTypeForSession(week,day)==='cf'){
+    return list.map(([name,detail])=>{
+      if(name==='Machine chest press ramp-up') return ['DB bench press ramp-up',detail];
+      if(name==='Light cable lateral raise') return ['Very light lateral raise',detail];
+      return [name,detail];
+    });
+  }
+  return list;
+}
+function gymSwitcherHTML(week,day){
+  if(day!=='wed') return '';
+  const type=gymTypeForSession(week,day);
+  return `<div class="gym-switcher" role="group" aria-label="Wednesday gym">
+    <button type="button" class="${type==='regular'?'active':''}" data-gym-type="regular">Regular gym</button>
+    <button type="button" class="${type==='cf'?'active':''}" data-gym-type="cf">CF gym</button>
+  </div>`;
+}
 function getExercises(week, day){
   const cycle = cycleForWeek(week);
-  const base = basePrograms[cycle][day].map(x=>({name:x[0], sets:x[1], reps:x[2], note:x[3]}));
+  const source = day==='wed' && gymTypeForSession(week,day)==='cf'
+    ? cfWednesdayPrograms[cycle]
+    : basePrograms[cycle][day];
+  const base = source.map(x=>({name:x[0], sets:x[1], reps:x[2], note:x[3]}));
   if(isDeload(week)){
     base.forEach((e, i)=>{ e.sets = Math.max(2, Math.round(e.sets*0.65)); if(i===0 && e.name==='Deadlift') e.reps = cycle===3 ? '4–5' : '5'; });
   }
@@ -533,7 +627,7 @@ function restSecondsFor(name){
   return 60;
 }
 function weightOptional(name){
-  return /chin-up|GHD hip extension|Ab wheel|hanging knee raise|Hollow rock|Band external rotation|Pallof press|Band triceps/i.test(name);
+  return /chin-up|Ring row|GHD hip extension|Ab wheel|hanging knee raise|Hollow rock|Band external rotation|Pallof press|Band triceps/i.test(name);
 }
 function rowIsComplete(name,row){
   const reps=Number(row?.reps);
@@ -667,7 +761,7 @@ function repRange(reps){
 }
 function loadStep(name){
   if(/Deadlift|Hip thrust/.test(name)) return 5;
-  if(/DB row|1-arm DB row|Hammer curl/.test(name)) return 2;
+  if(/DB row|1-arm DB row|DB bench press|Hammer curl/.test(name)) return 2;
   if(/lateral raise|scaption|Rear-delt raise/i.test(name)) return 1;
   return 2.5;
 }
@@ -842,6 +936,8 @@ function baselineSuggestion(e,week,day){
   if(e.name==='Hammer curl'){
     const v=numeric(b.hammerCurl)||10; return {value:v,text:`${v} kg per hand. Use double progression.`,kind:'baseline'};
   }
+  if(e.name==='DB bench press') return {value:null,text:'Use a pain-free DB load that leaves about 2–3 RIR; the app will progress from your logged CF-gym sets.',kind:'rule'};
+  if(e.name==='Ring row') return {value:null,text:'Bodyweight. Adjust foot position/body angle to stay in the prescribed rep range with about 2 RIR.',kind:'rule'};
   if(/Cable|Leg curl|Seated or cable row/.test(e.name)) return {value:null,text:'Machine stacks vary. Pick a load that leaves about 3 RIR; the app will build from what you log.',kind:'rule'};
   if(/GHD hip extension/.test(e.name)) return {value:null,text:'Start with bodyweight. Add a light plate only after 15 controlled reps feel easy.',kind:'rule'};
   return null;
@@ -937,7 +1033,7 @@ function setTargets(e, week, day, entry){
 function isCarryExercise(name){ return /Farmer carry|Suitcase carry/i.test(name); }
 function isChinupExercise(name){ return /chin-up/i.test(name); }
 function perHandFactor(name){
-  if(/Chest-supported DB row|1-arm DB row|DB lateral raise|DB scaption|Hammer curl|Rear-delt raise|DB triceps/i.test(name)) return 2;
+  if(/Chest-supported DB row|1-arm DB row|DB bench press|DB lateral raise|DB scaption|Hammer curl|Rear-delt raise|DB triceps/i.test(name)) return 2;
   return 1;
 }
 function rowWork(name,row,bw){
@@ -1094,7 +1190,7 @@ function renderToday(){
 }
 
 function warmupHTML(week,day,log){
-  const list=warmups[cycleForWeek(week)][day];
+  const list=getWarmup(week,day);
   const open=!log.startedAt && !log.completed;
   return `<details class="card warmup-card" ${open?'open':''}>
     <summary><div><div class="section-kicker">Warm-up</div><strong>${list.length} movements · about 8 min</strong></div>${icon('chev','chev')}</summary>
@@ -1122,6 +1218,7 @@ function sessionHTML(week,day,{context='program', swapped=false, scheduled=null}
       ${swapped && scheduled ? `<button type="button" class="link-btn" id="backToSchedule">Back to ${dayLabel(scheduled.day)}'s session</button>` : swapped ? `<button type="button" class="link-btn" id="backToSchedule">Clear swap</button>` : ''}
       <button type="button" class="link-btn" data-open-chooser>${icon('swap')}Switch session</button></div>` : '';
   return `
+    ${gymSwitcherHTML(week,day)}
     ${workoutCoverHTML(week,day)}
     <section class="card hero">
       <div class="hero-top"><div class="hero-kicker">${dateText} · Week ${week} · Cycle ${cycleNo}${isDeload(week)?' · Deload':''}</div><span class="badge ${log.completed?'good':'on-dark'}">${log.completed?'✓ Done':'~60 min'}</span></div>
@@ -1281,6 +1378,18 @@ function exerciseHTML(week,day,e,index,log,open){
 function bindSessionInputs(week,day){
   activeSession={week,day};
   const key=logKey(week,day);
+  app.querySelectorAll('[data-gym-type]').forEach(btn=>btn.addEventListener('click',()=>{
+    const next=btn.dataset.gymType;
+    const entry=getSessionLog(week,day);
+    const current=gymTypeForSession(week,day);
+    if(next===current) return;
+    const hasLogged=Object.values(entry.exercises||{}).some(rows=>(rows||[]).some(rowHasData));
+    if(hasLogged && !confirm('Switch gym for this Wednesday? Existing logged sets will stay saved, but exercises from the other gym may be hidden.')) return;
+    entry.gymType=next;
+    logs[key]=entry;
+    saveJSON(STORAGE.logs,logs);
+    render();
+  }));
   const exercises=getExercises(week,day);
   const byName=Object.fromEntries(exercises.map(e=>[e.name,e]));
   const field=(enc,s,f)=>app.querySelector(`[data-ex="${enc}"][data-set="${s}"][data-field="${f}"]`);
