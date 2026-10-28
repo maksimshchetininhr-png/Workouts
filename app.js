@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.18';
+const APP_VERSION = '5.19';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -1039,7 +1039,10 @@ function baselineSuggestion(e,week,day){
   return null;
 }
 function suggestedLoad(e,week,day){
-  if(e.name==='Deadlift technique') return baselineSuggestion(e,week,day);
+  if(e.name==='Deadlift technique'){
+    if(isDeload(week)) return progressionFromLast(e,week,day) || baselineSuggestion(e,week,day);
+    return baselineSuggestion(e,week,day);
+  }
   return progressionFromLast(e,week,day) || baselineSuggestion(e,week,day);
 }
 function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; }
@@ -1057,6 +1060,7 @@ function setTargets(e, week, day, entry){
   const profile=workingLoadProfile(e,prev);
   const workingWeight=profile?.weight ?? sug?.referenceWeight ?? sug?.value ?? null;
   const suggestedWorkingWeight=sug?.value ?? workingWeight;
+  const deload=isDeload(week);
 
   // Progress one rep at a time when the working load stays the same.
   let repBumpUsed=false;
@@ -1071,6 +1075,37 @@ function setTargets(e, week, day, entry){
 
     let targetWeight=suggestedWorkingWeight ?? prevW ?? null;
     let targetRep=range?.min ?? prevR ?? null;
+
+    // Deload always wins over normal progression logic:
+    // fewer sets are already programmed, and grey targets must not increase.
+    if(deload){
+      if(weightOptional(e.name)){
+        targetWeight=null;
+      } else if(prevW){
+        const step=loadStep(e.name);
+        const deloadWeight=sug?.kind==='deload' && sug?.value!=null
+          ? sug.value
+          : Math.max(step,roundStep(prevW*0.85,step));
+        targetWeight=Math.min(prevW,deloadWeight);
+      }
+
+      if(range){
+        if(prevR){
+          const reduced=Math.round(prevR*0.85);
+          targetRep=Math.min(prevR,range.max,Math.max(range.min,reduced));
+        } else {
+          targetRep=range.min;
+        }
+      } else if(prevR){
+        targetRep=prevR;
+      }
+
+      out.push({
+        weight:ownW ?? targetWeight,
+        reps:ownR ?? targetRep
+      });
+      continue;
+    }
 
     if(weightOptional(e.name)){
       targetWeight=null;
