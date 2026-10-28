@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.17';
+const APP_VERSION = '5.18';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -683,6 +683,23 @@ function formatClock(iso){
   if(!iso) return '—';
   return new Intl.DateTimeFormat(undefined,{hour:'2-digit',minute:'2-digit'}).format(new Date(iso));
 }
+function localDateTimeValue(iso){
+  if(!iso) return '';
+  const d=new Date(iso);
+  if(!Number.isFinite(d.getTime())) return '';
+  const p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function isoFromLocalDateTime(value){
+  if(!value) return null;
+  const d=new Date(value);
+  return Number.isFinite(d.getTime()) ? d.toISOString() : null;
+}
+function minutesBetween(startIso,endIso){
+  if(!startIso || !endIso) return null;
+  const ms=new Date(endIso)-new Date(startIso);
+  return Number.isFinite(ms) && ms>=0 ? Math.round(ms/60000) : null;
+}
 function formatDuration(ms){
   if(!Number.isFinite(ms) || ms < 0) return '—';
   const total=Math.round(ms/1000), h=Math.floor(total/3600), m=Math.floor((total%3600)/60), sec=total%60;
@@ -1305,8 +1322,22 @@ function sessionHTML(week,day,{context='program', swapped=false, scheduled=null}
       <p class="hero-note">${progressionNote(week)}</p>
       <div class="hero-clock">
         <div><div class="clock-value" id="sessionElapsed">0:00</div><div class="clock-detail" id="sessionTimeDetail"></div></div>
-        ${clockBtn}
+        <div class="hero-clock-actions">
+          ${clockBtn}
+          ${(log.startedAt||log.completed)?'<button type="button" class="ghost-btn" id="editSessionTime">Edit time</button>':''}
+        </div>
       </div>
+      ${(log.startedAt||log.completed)?`<div class="session-time-editor" id="sessionTimeEditor" hidden>
+        <div class="session-time-fields">
+          <label><span>Start</span><input type="datetime-local" id="sessionStartEdit" value="${localDateTimeValue(log.startedAt)}"></label>
+          <label><span>End</span><input type="datetime-local" id="sessionEndEdit" value="${localDateTimeValue(log.endedAt||log.finishedAt)}"></label>
+          <label><span>Duration</span><div class="duration-input"><input type="number" min="1" step="1" inputmode="numeric" id="sessionDurationEdit" value="${minutesBetween(log.startedAt,log.endedAt||log.finishedAt)??''}" placeholder="60"><em>min</em></div></label>
+        </div>
+        <div class="session-time-actions">
+          <button type="button" class="secondary compact" id="cancelSessionTime">Cancel</button>
+          <button type="button" class="primary compact" id="saveSessionTime">Save time</button>
+        </div>
+      </div>`:''}
       <div class="hero-progress"><div class="bar"><span id="setsBar" style="width:${pct}%"></span></div><span id="setsLabel">${done}/${total} sets</span></div>
       ${links}
     </section>
@@ -1576,6 +1607,53 @@ function bindSessionInputs(week,day){
     Object.values(entry.exercises||{}).forEach(sets=>(sets||[]).forEach(r=>{ if(r) delete r.completedAt; }));
     logs[key]=entry; saveJSON(STORAGE.logs,logs); clearRestTimer(); render();
   };
+
+  const editTimeBtn=document.getElementById('editSessionTime');
+  const timeEditor=document.getElementById('sessionTimeEditor');
+  const startEdit=document.getElementById('sessionStartEdit');
+  const endEdit=document.getElementById('sessionEndEdit');
+  const durationEdit=document.getElementById('sessionDurationEdit');
+
+  const syncDurationFromTimes=()=>{
+    if(!startEdit || !endEdit || !durationEdit) return;
+    const start=isoFromLocalDateTime(startEdit.value), end=isoFromLocalDateTime(endEdit.value);
+    const mins=minutesBetween(start,end);
+    durationEdit.value=mins==null?'':mins;
+  };
+  const syncTimesFromDuration=()=>{
+    if(!startEdit || !endEdit || !durationEdit) return;
+    const mins=Number(durationEdit.value);
+    if(!Number.isFinite(mins) || mins<=0) return;
+    const start=isoFromLocalDateTime(startEdit.value);
+    const end=isoFromLocalDateTime(endEdit.value);
+    if(start){
+      endEdit.value=localDateTimeValue(new Date(new Date(start).getTime()+mins*60000).toISOString());
+    } else if(end){
+      startEdit.value=localDateTimeValue(new Date(new Date(end).getTime()-mins*60000).toISOString());
+    }
+  };
+
+  if(editTimeBtn && timeEditor){
+    editTimeBtn.onclick=()=>{ timeEditor.hidden=!timeEditor.hidden; };
+    document.getElementById('cancelSessionTime')?.addEventListener('click',()=>{ timeEditor.hidden=true; });
+    startEdit?.addEventListener('change',syncDurationFromTimes);
+    endEdit?.addEventListener('change',syncDurationFromTimes);
+    durationEdit?.addEventListener('change',syncTimesFromDuration);
+    document.getElementById('saveSessionTime')?.addEventListener('click',()=>{
+      const entry=persistInputs();
+      const start=isoFromLocalDateTime(startEdit?.value);
+      const end=isoFromLocalDateTime(endEdit?.value);
+      if(!start || !end){ toast('Enter both start and end time'); return; }
+      if(new Date(end)<=new Date(start)){ toast('End time must be after start time'); return; }
+      entry.startedAt=start;
+      entry.endedAt=end;
+      if(entry.completed) entry.finishedAt=end;
+      logs[key]=entry;
+      saveJSON(STORAGE.logs,logs);
+      render();
+      toast('Workout time updated');
+    });
+  }
   document.getElementById('finishBtn').onclick=()=>{
     const entry=persistInputs();
     if(entry.completed){
