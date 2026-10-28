@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.16';
+const APP_VERSION = '5.17';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -495,6 +495,81 @@ function applyOneTimeDataFixes(){
   };
   migrateWed('2026-10-14');
   migrateWed('2026-10-21');
+
+  // v2: robust slot-aware transfer. This runs even if the first rename pass
+  // already executed, so all logged set rows end up on the exercises that were
+  // actually performed at the CF gym.
+  const transferCfWednesday=(date)=>{
+    const fixKey=`fixed-${date}-wed-cf-gym-v2`;
+    if(meta?.[fixKey]) return;
+    const dateObj=parseLocalDate(date);
+    const week=getProgramWeek(dateObj);
+    if(week<1 || week>12 || dayKeyFromDate(dateObj)!=='wed') return;
+
+    const key=logKey(week,'wed');
+    const entry=logs[key];
+    if(!entry || !hasData(entry)) return;
+    const ex=entry.exercises ||= {};
+
+    const moveFirstAvailable=(target,sources)=>{
+      if(ex[target]?.some(rowHasData)) return target;
+      for(const source of sources){
+        if(source===target) continue;
+        if(ex[source]?.some(rowHasData)){
+          ex[target]=ex[source];
+          delete ex[source];
+          return source;
+        }
+      }
+      return null;
+    };
+
+    // One-to-one correspondence between the regular-gym logging slots and
+    // what was actually performed on these two CF-gym Wednesdays.
+    const moved={
+      dbBench:moveFirstAvailable('DB bench press',[
+        'Machine chest press'
+      ]),
+      ringRow:moveFirstAvailable('Ring row',[
+        'Seated or cable row','Cable row','Cable rear-delt fly'
+      ]),
+      sideRaise:moveFirstAvailable('DB lateral raise',[
+        'Cable lateral raise'
+      ]),
+      hammerCurl:moveFirstAvailable('Hammer curl',[
+        'Cable curl'
+      ]),
+      dbTriceps:moveFirstAvailable('DB triceps extension / kickback',[
+        'Cable triceps pushdown'
+      ])
+    };
+
+    // Remove duplicate old aliases after a successful transfer so History,
+    // workload and progression don't count the same work twice.
+    const oldAliases=[
+      'Machine chest press','Seated or cable row','Cable row','Cable rear-delt fly',
+      'Cable lateral raise','Cable curl','Cable triceps pushdown'
+    ];
+    oldAliases.forEach(name=>{
+      if(ex[name]?.some(rowHasData)){
+        const target = name==='Machine chest press' ? 'DB bench press'
+          : /Seated or cable row|Cable row|Cable rear-delt fly/.test(name) ? 'Ring row'
+          : name==='Cable lateral raise' ? 'DB lateral raise'
+          : name==='Cable curl' ? 'Hammer curl'
+          : name==='Cable triceps pushdown' ? 'DB triceps extension / kickback'
+          : null;
+        if(target && ex[target]?.some(rowHasData)) delete ex[name];
+      }
+    });
+
+    entry.gymType='cf';
+    logs[key]=entry;
+    saveJSON(STORAGE.logs,logs);
+    meta[fixKey]={applied:true,week,day:'wed',date,gymType:'cf',moved};
+    saveJSON(STORAGE.meta,meta);
+  };
+  transferCfWednesday('2026-10-14');
+  transferCfWednesday('2026-10-21');
 }
 function clampWeek(w){ return Math.max(1, Math.min(12, w)); }
 function cycleForWeek(w){ return w <= 4 ? 1 : w <= 8 ? 2 : 3; }
