@@ -795,3 +795,32 @@ body.flash::after { background:var(--accent); }
   .workout-cover-copy { left:16px; right:16px; bottom:15px; }
   .workout-cover-title { font-size:21px; }
 }
+
+
+/* v5.16 Wednesday gym switcher */
+.gym-switcher {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:5px;
+  margin:8px 0 10px;
+  padding:5px;
+  border-radius:17px;
+  background:#191a1e;
+  border:1px solid #2b2d33;
+}
+.gym-switcher button {
+  border:0;
+  border-radius:12px;
+  padding:10px 12px;
+  background:transparent;
+  color:#858890;
+  font-size:12.5px;
+  font-weight:850;
+  transition:background .15s,color .15s,transform .15s;
+}
+.gym-switcher button:active { transform:scale(.98); }
+.gym-switcher button.active {
+  background:var(--accent);
+  color:#fff;
+  box-shadow:0 8px 20px rgba(240,68,77,.18);
+}
