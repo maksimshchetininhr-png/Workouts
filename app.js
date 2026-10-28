@@ -1429,6 +1429,9 @@ function previousPerformance(e,week,day){
 function liveProgressionGuidance(e,week,day,entry){
   const range=repRange(e.reps);
   if(!range) return '';
+  if(isDeload(week)){
+    return 'Deload week: follow the reduced grey targets, keep the reps easy, and leave about 3–4 RIR. Do not progress load or reps this week.';
+  }
   const rows=(entry.exercises?.[e.name]||[]).slice(0,e.sets).filter(r=>rowIsComplete(e.name,r));
   const step=loadStep(e.name);
 
