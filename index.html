@@ -109,6 +109,15 @@
           <label class="secondary full file-btn">Import backup<input id="importInput" type="file" accept="application/json,.json" hidden /></label>
         </div>
 
+        <details class="about">
+          <summary>GitHub backup upload</summary>
+          <p>Explicitly upload an importable backup of workout times, loads, reps, notes, settings and benchmarks to <strong>maksimshchetininhr-png/Workouts</strong>, branch <strong>main</strong>, file <strong>backups/workouts.json</strong>. Each upload replaces that file; older versions remain in Git history. Data is visible to everyone who can access the repository, and to everyone if it is public.</p>
+          <p>Use a fine-grained GitHub token with access to this repository and <strong>Contents: read and write</strong>. Enter it for each upload. The app does not save the token or include it in backups.</p>
+          <label>GitHub token<input id="githubToken" type="password" autocomplete="off" autocapitalize="none" spellcheck="false" /></label>
+          <button type="button" id="githubBackupBtn" class="secondary full">Upload backup to GitHub</button>
+          <p id="githubBackupStatus" class="field-hint" role="status" aria-live="polite"></p>
+        </details>
+
         <div class="settings-section">About</div>
         <details class="about">
           <summary>How load suggestions work</summary>

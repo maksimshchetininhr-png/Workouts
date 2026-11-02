@@ -2,6 +2,24 @@
 
 A phone-friendly installable web app (PWA) for the 12-week Saturday / Sunday / Wednesday program.
 
+## v5.21: working-session suggestions and GitHub backups
+
+Load suggestions now prefer the same exercise on the same training day, using a non-deload session when available. Saturday working loads stay separate from lighter Wednesday sets. The next block skips deload logs, and deadlift technique calibration uses the working load rather than a first ramp set.
+
+In **Settings → Data & backup → GitHub backup upload**, enter a fine-grained GitHub token with **Contents: read and write** permission for `maksimshchetininhr-png/Workouts`, then choose **Upload backup to GitHub** and confirm. Each upload creates or replaces `backups/workouts.json` on `main`. It includes full workout times, set loads/reps/RIR/pain/timestamps, notes, settings, benchmarks and any imported programme, using the same importable format as Export backup. To restore, download the JSON file from the repository and use Import backup.
+
+The token is used for that upload only, cleared on use or closing Settings, and never saved in browser storage or included in the backup. There are no automatic uploads. Backups remain in Git history and are visible to anyone with repository access (everyone if the repository is public). The Pages workflow publishes only app assets and skips backup-only commits, keeping backups out of the website. Branch protection or token access rules can prevent an upload; the app reports failure without marking the backup successful.
+
+## Local development and tests
+
+No build or package installation is required to run the app:
+
+```sh
+python3 -m http.server 8000 --bind 127.0.0.1
+```
+
+Check syntax with `node --check app.js` and `node --check service-worker.js`. With Playwright available to Node and Chromium installed, run `node tests/browser.cjs` against that server. Set `NODE_PATH` to your Playwright installation and `CHROMIUM_PATH` to your Chromium binary if needed. The tests exercise working-session/deload references, navigation, and GitHub upload creation, replacement, cancellation and failures with synthetic data and a mocked API. They never upload actual workout data or use a real GitHub token.
+
 ## Update your GitHub Pages app
 Upload/replace these files in the root of the `Workouts` repository:
 - `index.html`

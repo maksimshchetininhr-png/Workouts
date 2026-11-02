@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.20';
+const APP_VERSION = '5.21';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -880,36 +880,24 @@ function loadStep(name){
   if(/lateral raise|scaption|Rear-delt raise/i.test(name)) return 1;
   return 2.5;
 }
-// Prefer the immediately preceding program week when building per-set grey targets.
-function previousWeekExerciseLog(exerciseName, week){
-  if(week<=1) return null;
-  const targetWeek=week-1;
-  let best=null;
-  for(const d of DAYS){
-    const entry=logs[logKey(targetWeek,d)];
-    const sets=entry?.exercises?.[exerciseName];
-    if(!sets?.some(rowHasData)) continue;
-    const item={score:sessionScore(targetWeek,d),sets,week:targetWeek,day:d};
-    if(!best || item.score>best.score) best=item;
-  }
-  return best;
-}
-
-// Deload weeks are skipped so a light week never becomes the base for the next block.
+// Match the training day before falling back to another working session.
+// Exact exercise names keep heavy deadlifts separate from Wednesday technique work.
+// Never let a deload become the baseline when a normal working session exists.
 function previousExerciseLog(exerciseName, week, day){
   const currentScore=sessionScore(week,day);
-  let best=null, bestAny=null;
+  const candidates=[];
   Object.entries(logs).forEach(([key,entry])=>{
     const p=parseLogKey(key); if(!p) return;
     const score=sessionScore(p.week,p.day);
     if(score>=currentScore) return;
     const sets=entry.exercises?.[exerciseName];
     if(!sets?.some(rowHasData)) return;
-    const item={score,sets,week:p.week,day:p.day};
-    if(!bestAny || score>bestAny.score) bestAny=item;
-    if(!isDeload(p.week) && (!best || score>best.score)) best=item;
+    candidates.push({score,sets,week:p.week,day:p.day});
   });
-  return best || bestAny;
+  const working=candidates.filter(p=>!isDeload(p.week));
+  const pool=working.length?working:candidates;
+  pool.sort((a,b)=>Number(b.day===day)-Number(a.day===day) || b.score-a.score);
+  return pool[0] || null;
 }
 function workingLoadProfile(e, rows){
   const range=repRange(e.reps);
@@ -958,7 +946,7 @@ function workingLoadProfile(e, rows){
 }
 
 function progressionFromLast(e, week, day){
-  const prev=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
+  const prev=previousExerciseLog(e.name,week,day);
   if(!prev) return null;
   const rows=prev.sets.filter(rowHasData); if(!rows.length) return null;
   const profile=workingLoadProfile(e,rows);
@@ -1005,7 +993,7 @@ function baselineSuggestion(e,week,day){
   const factors=[0.80,0.85,0.90,0.70];
   if(e.name==='Deadlift technique'){
     const prev=previousExerciseLog('Deadlift',week,day);
-    const heavy=(prev?.sets||[]).map(r=>numeric(r.weight)).find(Boolean);
+    const heavy=workingLoadProfile(e,prev?.sets||[])?.weight;
     if(heavy) return {value:roundStep(heavy*0.65,2.5),text:`Technique load: about 65% of your most recent heavy deadlift working load (${heavy} kg).`,kind:'rule'};
     const base=numeric(b.deadlift5RM);
     if(base) return {value:roundStep(base*0.55,2.5),text:`Technique calibration from your ${base} kg comfortable 5RM. Keep about 4 RIR.`,kind:'baseline'};
@@ -1074,7 +1062,7 @@ function goalFor(e,week){ return uploadedProgram?.goals?.[e.name] || goalMap[cyc
 // Last week's actual load/reps are displayed separately above the set grid.
 function setTargets(e, week, day, entry){
   const sug=suggestedLoad(e,week,day);
-  const prevInfo=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
+  const prevInfo=previousExerciseLog(e.name,week,day);
   const prev=(prevInfo?.sets||[]).filter(rowHasData);
   const range=repRange(e.reps);
   const saved=entry.exercises?.[e.name]||[];
@@ -1442,7 +1430,7 @@ function suggestionHTML(sug, hidden){
     <div class="sug-text">${escapeHtml(sug.text)}</div></div>`;
 }
 function previousPerformance(e,week,day){
-  const prev=previousWeekExerciseLog(e.name,week) || previousExerciseLog(e.name,week,day);
+  const prev=previousExerciseLog(e.name,week,day);
   if(!prev) return null;
   const rows=(prev.sets||[]).filter(rowHasData).slice(0,e.sets);
   if(!rows.length) return null;
@@ -1962,8 +1950,11 @@ function updateBackupStatus(){
   const last=meta.lastBackupAt?new Date(meta.lastBackupAt):null;
   el.textContent=`${n} session${n===1?'':'s'} stored on this device. ${last?`Last backup: ${formatDate(last)}.`:'No backup yet.'}`;
 }
+function backupData(){
+  return {version:3,app:APP_VERSION,exportedAt:nowISO(),settings,logs,benchmarks,customProgram:uploadedProgram};
+}
 async function exportBackup(){
-  const data={version:3,app:APP_VERSION,exportedAt:nowISO(),settings,logs,benchmarks,customProgram:uploadedProgram};
+  const data=backupData();
   const name=`training-backup-${dateKey(new Date())}.json`;
   const json=JSON.stringify(data,null,2);
   const markDone=()=>{ meta.lastBackupAt=nowISO(); saveJSON(STORAGE.meta,meta); updateBackupStatus(); toast('Backup saved'); if(currentView==='today') render(); };
@@ -1975,6 +1966,51 @@ async function exportBackup(){
   const a=document.createElement('a'); a.href=url; a.download=name; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url),1000);
   markDone();
+}
+// The token exists only for this request: never persist it or include it in backups.
+async function uploadGitHubBackup(){
+  const input=document.getElementById('githubToken');
+  let token=input.value.trim();
+  input.value='';
+  const status=document.getElementById('githubBackupStatus');
+  const button=document.getElementById('githubBackupBtn');
+  if(!token){ status.textContent='Enter a GitHub token for this upload.'; return; }
+  if(!confirm('Upload all workout logs, times, loads, reps, notes, settings and benchmarks to maksimshchetininhr-png/Workouts on main? This replaces backups/workouts.json. Anyone with repository access can read it, including older versions in Git history.')){ token=''; return; }
+  button.disabled=true;
+  status.textContent='Uploading backup…';
+  try{
+    const url='https://api.github.com/repos/maksimshchetininhr-png/Workouts/contents/backups/workouts.json';
+    const headers={Authorization:`Bearer ${token}`,Accept:'application/vnd.github+json','X-GitHub-Api-Version':'2022-11-28'};
+    // Snapshot before awaiting network calls so one upload represents one point in time.
+    const bytes=new TextEncoder().encode(JSON.stringify(backupData(),null,2));
+    let binary='';
+    for(const byte of bytes) binary+=String.fromCharCode(byte);
+    const content=btoa(binary);
+    const options={headers,cache:'no-store',credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30000)};
+    const existing=await fetch(`${url}?ref=main`,options);
+    let sha;
+    if(existing.ok){
+      const file=await existing.json();
+      if(file.type!=='file' || !file.sha) throw new Error('The backup path is not a file.');
+      sha=file.sha;
+    } else if(existing.status!==404){ throw new Error(githubBackupError(existing.status)); }
+    const result=await fetch(url,{...options,signal:AbortSignal.timeout(30000),method:'PUT',headers:{...headers,'Content-Type':'application/json'},body:JSON.stringify({message:'Back up workout data',branch:'main',content,...(sha?{sha}:{})})});
+    if(!result.ok) throw new Error(githubBackupError(result.status));
+    meta.lastBackupAt=nowISO();
+    saveJSON(STORAGE.meta,meta);
+    updateBackupStatus();
+    status.textContent='Backup uploaded to backups/workouts.json on main.';
+  } catch(error){
+    status.textContent=error.name==='TimeoutError' || error.name==='TypeError'
+      ? 'Upload could not be confirmed. Check your connection and the repository before retrying.'
+      : error.message;
+  } finally { token=''; input.value=''; button.disabled=false; }
+}
+function githubBackupError(status){
+  if(status===401 || status===403) return 'GitHub denied access. Check the token has Contents: read and write access to this repository.';
+  if(status===404) return 'Repository unavailable. Check token access to maksimshchetininhr-png/Workouts.';
+  if(status===409 || status===422) return 'GitHub could not save the backup. Check branch rules or a concurrent update, then try again.';
+  return `GitHub backup failed (HTTP ${status}). Try again later.`;
 }
 function importBackup(ev){
   const file=ev.target.files?.[0]; if(!file) return;
@@ -2113,6 +2149,8 @@ document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>
 document.getElementById('settingsBtn').onclick=openSettings;
 document.getElementById('saveSettingsBtn').onclick=saveSettings;
 document.getElementById('exportBtn').onclick=exportBackup;
+document.getElementById('githubBackupBtn').onclick=uploadGitHubBackup;
+settingsDialog.addEventListener('close',()=>{ document.getElementById('githubToken').value=''; });
 document.getElementById('importInput').onchange=importBackup;
 document.getElementById('programImportInput').onchange=importProgram;
 document.getElementById('resetProgramBtn').onclick=restoreBuiltInProgram;
