@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.21';
+const APP_VERSION = '5.22';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -642,8 +642,11 @@ function gymTypeForSession(week,day){
   if(day!=='wed') return 'cf';
   return logs[logKey(week,day)]?.gymType === 'cf' ? 'cf' : 'regular';
 }
+function activeProgram(week){
+  return week>=5 && week<=12 ? (uploadedProgram || bundledProgram) : null;
+}
 function importedSession(week,day){
-  const s=uploadedProgram?.sessions?.[logKey(week,day)];
+  const s=activeProgram(week)?.sessions?.[logKey(week,day)];
   if(!s) return null;
   return day==='wed' ? (s[gymTypeForSession(week,day)] || s.regular) : s;
 }
@@ -1056,7 +1059,7 @@ function suggestedLoad(e,week,day){
   }
   return progressionFromLast(e,week,day) || baselineSuggestion(e,week,day);
 }
-function goalFor(e,week){ return uploadedProgram?.goals?.[e.name] || goalMap[cycleForWeek(week)]?.[e.name] || null; }
+function goalFor(e,week){ return activeProgram(week)?.goals?.[e.name] || goalMap[cycleForWeek(week)]?.[e.name] || null; }
 
 // Grey placeholders are today's suggested load/reps.
 // Last week's actual load/reps are displayed separately above the set grid.
@@ -1338,11 +1341,20 @@ function renderToday(){
       </div>
     </section>
     ${beforeStart?'':missedHTML('')}
-    <section class="card"><div class="section-kicker">Current focus · Cycle ${cycleForWeek(clampWeek(nw))}</div><h3>${cycles[cycleForWeek(clampWeek(nw))-1].name}</h3><p class="muted small">${cycles[cycleForWeek(clampWeek(nw))-1].focus}</p></section>
-    <div class="callout warn"><strong>Joint rules:</strong> shoulder pain stays at 2/10 or less. No landmine press, dips, push-ups or free-weight chest pressing for now. No squats, lunges, running or jumping.</div>
+    ${programFocusHTML(clampWeek(nw))}
+    ${activeProgram(clampWeek(nw)) ? programRulesHTML(clampWeek(nw)) : '<div class="callout warn"><strong>Joint rules:</strong> shoulder pain stays at 2/10 or less. No landmine press, dips, push-ups or free-weight chest pressing for now. No squats, lunges, running or jumping.</div>'}
     ${backupReminderHTML()}`;
 }
 
+function programRulesHTML(week){
+  const rules=activeProgram(week)?.rehabRules;
+  if(!rules) return '';
+  return `<div class="callout warn"><strong>Knee rehabilitation:</strong> pain no greater than ${escapeHtml(rules.maxPainDuringExercise)}/10. ${escapeHtml(rules.nextMorning)} ${escapeHtml(rules.progression)} ${escapeHtml(rules.avoid)}</div>`;
+}
+function programFocusHTML(week){
+  const program=activeProgram(week), cycle=cycles[cycleForWeek(week)-1];
+  return `<section class="card cycle-card"><div class="section-kicker">${program?'Weeks 5–12':'Current focus'}</div><h3>${escapeHtml(program?.name || cycle.name)}</h3><p class="muted small">${escapeHtml(program?.description || cycle.focus)}</p></section>`;
+}
 function warmupHTML(week,day,log){
   const list=getWarmup(week,day);
   const open=!log.startedAt && !log.completed;
@@ -1399,6 +1411,7 @@ function sessionHTML(week,day,{context='program', swapped=false, scheduled=null}
       <div class="hero-progress"><div class="bar"><span id="setsBar" style="width:${pct}%"></span></div><span id="setsLabel">${done}/${total} sets</span></div>
       ${links}
     </section>
+    ${programRulesHTML(week)}
     ${warmupHTML(week,day,log)}
     ${sessionGoalsHTML(week,ex)}
     <div class="section-title">Workout</div>
@@ -1519,7 +1532,7 @@ function exerciseHTML(week,day,e,index,log,open){
   const sug=suggestedLoad(e,week,day);
   const targets=setTargets(e,week,day,log);
   const done=exerciseComplete(e,log);
-  const unit=isCarryExercise(e.name)?'m':'reps';
+  const unit=isCarryExercise(e.name)?'m':isTimedKneeRehab(e.name)?'seconds':'reps';
   const wPh=t=>t.weight ?? (weightOptional(e.name)?'BW':'–');
   return `<details class="exercise ${done?'done':''}" data-card="${enc}" ${open?'open':''}>
     <summary>
@@ -1788,7 +1801,6 @@ function showSummary(week,day){
 function renderProgram(){
   pageTitle.textContent='Program';
   const cur=getProgramWeek(new Date());
-  const c=cycleForWeek(selectedWeek);
   app.innerHTML = `
     <div class="week-tabs">${Array.from({length:12},(_,i)=>{
       const w=i+1, all=DAYS.every(d=>getSessionLog(w,d).completed);
@@ -1798,7 +1810,7 @@ function renderProgram(){
       const l=getSessionLog(selectedWeek,d);
       return `<button class="day-btn ${selectedDay===d?'active':''}" data-day="${d}"><span>${dayLabel(d)}${l.completed?' ✓':''}</span><small>${formatShortDate(sessionDate(selectedWeek,d))}</small></button>`;
     }).join('')}</div>
-    <section class="card cycle-card"><div class="section-kicker">Cycle ${c} · weeks ${cycles[c-1].weeks[0]}–${cycles[c-1].weeks[3]}</div><h3>${cycles[c-1].name}</h3><p class="muted small">${cycles[c-1].focus}</p></section>
+    ${programFocusHTML(selectedWeek)}
     ${sessionHTML(selectedWeek,selectedDay,{context:'program'})}`;
   app.querySelectorAll('[data-week]').forEach(b=>b.onclick=()=>{selectedWeek=Number(b.dataset.week);render();});
   app.querySelectorAll('[data-day]').forEach(b=>b.onclick=()=>{selectedDay=b.dataset.day;render();});
@@ -2069,7 +2081,7 @@ function updateProgramStatus(){
   if(!el) return;
   el.textContent=uploadedProgram
     ? uploadedProgram.name+' · Weeks '+uploadedProgram.startWeek+'–'+uploadedProgram.endWeek+' loaded. Existing training logs unchanged.'
-    : 'Built-in 12-week programme. Import a custom programme to update Weeks 5–12 without changing your logs.';
+    : bundledProgram.name+' · Built-in Weeks 5–12. Weeks 1–4 and existing logs unchanged.';
 }
 function importProgram(ev){
   const file=ev.target.files?.[0];

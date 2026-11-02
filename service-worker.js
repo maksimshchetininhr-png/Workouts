@@ -2,7 +2,7 @@
 // so a new release only needs APP_VERSION bumped there.
 const VERSION = new URL(self.location).searchParams.get('v') || 'dev';
 const CACHE = `training-pwa-${VERSION}`;
-const ASSETS = ['./', './index.html', './styles.css', './app.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const ASSETS = ['./', './index.html', './styles.css', './app.js', './program.js', './manifest.webmanifest', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
   self.skipWaiting();

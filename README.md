@@ -2,6 +2,14 @@
 
 A phone-friendly installable web app (PWA) for the 12-week Saturday / Sunday / Wednesday program.
 
+## v5.22: updated Weeks 5–12 programme
+
+The built-in programme now uses the supplied **Strength + Shoulder Capacity + Progressive Knee Rehabilitation** plan. [Readable schedule](docs/training-program-weeks5-12-readable.md) lists every session; `program.js` contains its complete prescriptions, warmups, notes, goals and rehab rules. Weeks 1–4, the existing start date, workout logs, times, settings and benchmarks are retained. With the original start date, Week 5 begins on 7 November 2026.
+
+Both regular-gym and CF-gym Wednesday options are included. Weeks 8 and 12 use the file's explicit deload counts without reducing them again. Isometric holds are labelled in seconds, carries in metres, and rehab exercises retain manual load control and the supplied clinician-clearance conditions. The programme is cached for offline use and included in the Pages app assets.
+
+An explicitly imported programme continues to take priority. To switch from one to this updated default, select **Settings → Use built-in programme**; saved training data stays intact. Run `node tests/program.cjs` with Playwright available and the local server running to check all 32 session variants, the readable tables, history preservation, custom import priority, and offline programme loading.
+
 ## v5.21: working-session suggestions and GitHub backups
 
 Load suggestions now prefer the same exercise on the same training day, using a non-deload session when available. Saturday working loads stay separate from lighter Wednesday sets. The next block skips deload logs, and deadlift technique calibration uses the working load rather than a first ramp set.
