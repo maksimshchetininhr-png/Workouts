@@ -94,6 +94,14 @@
         <label class="toggle-row"><span>Rest timer sound<small>Beeps when rest is over. The iPhone silent switch mutes it; the screen flashes either way.</small></span><input type="checkbox" id="soundPref" /></label>
         <label class="toggle-row"><span>Keep screen awake<small>Stops the phone locking while a session timer is running.</small></span><input type="checkbox" id="wakePref" /></label>
 
+        <div class="settings-section">Workout programme</div>
+        <p class="field-hint" id="programStatus"></p>
+        <div class="button-stack">
+          <label class="secondary full file-btn">Import programme (.json)<input id="programImportInput" type="file" accept="application/json,.json" hidden /></label>
+          <button type="button" class="secondary full" id="resetProgramBtn">Use built-in programme</button>
+        </div>
+        <p class="field-hint">Programme import changes future workouts only. It does not replace exercise logs, benchmarks or profile settings. Export a backup separately.</p>
+
         <div class="settings-section">Data & backup</div>
         <p class="field-hint" id="backupStatus"></p>
         <div class="button-stack">
