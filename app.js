@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.19';
+const APP_VERSION = '5.20';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -8,7 +8,8 @@ const STORAGE = {
   benchmarks: 'trainingApp.benchmarks.v1',
   restTimer: 'trainingApp.restTimer.v1',
   override: 'trainingApp.todayOverride.v1',
-  meta: 'trainingApp.meta.v1'
+  meta: 'trainingApp.meta.v1',
+  program: 'trainingApp.program.v1'
 };
 
 const defaultSettings = {
@@ -410,6 +411,7 @@ let settings = deepSettings(loadJSON(STORAGE.settings, null));
 let logs = loadJSON(STORAGE.logs, {});
 let benchmarks = loadJSON(STORAGE.benchmarks, {});
 let meta = loadJSON(STORAGE.meta, {});
+let uploadedProgram = loadJSON(STORAGE.program, null);
 applyOneTimeDataFixes();
 let currentView = 'today';
 let selectedWeek = clampWeek(getProgramWeek(new Date()));
@@ -640,7 +642,14 @@ function gymTypeForSession(week,day){
   if(day!=='wed') return 'cf';
   return logs[logKey(week,day)]?.gymType === 'cf' ? 'cf' : 'regular';
 }
+function importedSession(week,day){
+  const s=uploadedProgram?.sessions?.[logKey(week,day)];
+  if(!s) return null;
+  return day==='wed' ? (s[gymTypeForSession(week,day)] || s.regular) : s;
+}
 function getWarmup(week,day){
+  const custom=importedSession(week,day);
+  if(custom?.warmup) return custom.warmup.map(x=>[...x]);
   const list=warmups[cycleForWeek(week)][day].map(x=>[...x]);
   if(day==='wed' && gymTypeForSession(week,day)==='cf'){
     return list.map(([name,detail])=>{
@@ -660,6 +669,13 @@ function gymSwitcherHTML(week,day){
   </div>`;
 }
 function getExercises(week, day){
+  const custom=importedSession(week,day);
+  // Import files contain explicit deload set counts for Weeks 8 and 12.
+  // Do not apply the built-in 0.65 factor again.
+  if(custom?.exercises) return custom.exercises.map(e=>({
+    name:e.name, sets:e.sets, reps:e.reps, note:e.note||'',
+    startWeightKg:e.startWeightKg??null
+  }));
   const cycle = cycleForWeek(week);
   const source = day==='wed' && gymTypeForSession(week,day)==='cf'
     ? cfWednesdayPrograms[cycle]
@@ -711,7 +727,10 @@ function sessionDurationMs(entry, live=true){
   const end=entry.endedAt || entry.lastSetAt || (live?new Date().toISOString():null);
   return end ? Math.max(0,new Date(end)-new Date(entry.startedAt)) : null;
 }
+function isKneeRehab(name){ return /\(knee rehab\)/i.test(name); }
+function isTimedKneeRehab(name){ return isKneeRehab(name) && /wall sit|isometric hold/i.test(name); }
 function restSecondsFor(name){
+  if(isKneeRehab(name)) return 90;
   if(/Deadlift technique/i.test(name)) return 120;
   if(/Deadlift/i.test(name)) return 180;
   if(/Weighted \/ strict chin-up/i.test(name)) return 180;
@@ -723,7 +742,7 @@ function restSecondsFor(name){
   return 60;
 }
 function weightOptional(name){
-  return /chin-up|Ring row|GHD hip extension|Ab wheel|hanging knee raise|Hollow rock|Band external rotation|Pallof press|Band triceps/i.test(name);
+  return /chin-up|Ring row|GHD hip extension|Ab wheel|hanging knee raise|Hollow rock|Band external rotation|Pallof press|Band triceps|wall sit|isometric hold/i.test(name);
 }
 function rowIsComplete(name,row){
   const reps=Number(row?.reps);
@@ -1039,13 +1058,17 @@ function baselineSuggestion(e,week,day){
   return null;
 }
 function suggestedLoad(e,week,day){
+  if(isKneeRehab(e.name)) return {
+    value:null, kind:'rule',
+    text:'Knee rehab: do not auto-increase load or range. Keep pain at 3/10 or less and symptoms back to baseline by the next morning. Progress stages only with physiotherapist clearance.'
+  };
   if(e.name==='Deadlift technique'){
     if(isDeload(week)) return progressionFromLast(e,week,day) || baselineSuggestion(e,week,day);
     return baselineSuggestion(e,week,day);
   }
   return progressionFromLast(e,week,day) || baselineSuggestion(e,week,day);
 }
-function goalFor(e,week){ return goalMap[cycleForWeek(week)]?.[e.name] || null; }
+function goalFor(e,week){ return uploadedProgram?.goals?.[e.name] || goalMap[cycleForWeek(week)]?.[e.name] || null; }
 
 // Grey placeholders are today's suggested load/reps.
 // Last week's actual load/reps are displayed separately above the set grid.
@@ -1075,6 +1098,16 @@ function setTargets(e, week, day, entry){
 
     let targetWeight=suggestedWorkingWeight ?? prevW ?? null;
     let targetRep=range?.min ?? prevR ?? null;
+
+    // Tendon rehabilitation is clinician- and symptom-guided, never algorithmically progressed.
+    // For timed holds the reps input records seconds, not repetition count.
+    if(isKneeRehab(e.name)){
+      out.push({
+        weight:ownW ?? (weightOptional(e.name)?null:(deload?null:(prevW ?? e.startWeightKg ?? null))),
+        reps:ownR ?? (range?.min ?? prevR ?? null)
+      });
+      continue;
+    }
 
     // Deload always wins over normal progression logic:
     // fewer sets are already programmed, and grey targets must not increase.
@@ -1172,6 +1205,8 @@ function rowWork(name,row,bw){
   if(!row || row.reps==='' || !Number.isFinite(reps) || reps<=0) return null;
   const w=Number(row.weight), hasW=row.weight!=='' && Number.isFinite(w) && w>0;
   if(isCarryExercise(name)) return {reps, tonnage:0, carry:hasW ? w*reps*(/Suitcase carry/i.test(name)?2:1) : 0};
+  // Time-based rehabilitation holds are seconds, not strength repetitions.
+  if(isTimedKneeRehab(name)) return {reps, tonnage:0, carry:0};
   let load=hasW?w:0;
   if(isChinupExercise(name)) load=bw+(hasW?w:0);
   return {reps, tonnage:load>0?load*reps*perHandFactor(name):0, carry:0};
@@ -1391,7 +1426,7 @@ function sessionHTML(week,day,{context='program', swapped=false, scheduled=null}
 function exerciseSummary(e,log,sug){
   const rows=(log.exercises?.[e.name]||[]).slice(0,e.sets).filter(r=>rowIsComplete(e.name,r));
   if(!rows.length) return `${e.sets} × ${escapeHtml(e.reps)}${sug?.value!=null?` · ${sug.value} kg`:''}`;
-  const u=isCarryExercise(e.name)?' m':'';
+  const u=isCarryExercise(e.name)?' m':isTimedKneeRehab(e.name)?' s':'';
   const ws=rows.map(r=>numeric(r.weight));
   const same=ws.every(w=>w===ws[0]);
   const body=same
@@ -1427,6 +1462,7 @@ function previousPerformance(e,week,day){
   };
 }
 function liveProgressionGuidance(e,week,day,entry){
+  if(isKneeRehab(e.name)) return 'Log pain and check your knee the following morning. Do not increase range or resistance automatically; move to a new stage only after clinician approval.';
   const range=repRange(e.reps);
   if(!range) return '';
   if(isDeload(week)){
@@ -1927,7 +1963,7 @@ function updateBackupStatus(){
   el.textContent=`${n} session${n===1?'':'s'} stored on this device. ${last?`Last backup: ${formatDate(last)}.`:'No backup yet.'}`;
 }
 async function exportBackup(){
-  const data={version:3,app:APP_VERSION,exportedAt:nowISO(),settings,logs,benchmarks};
+  const data={version:3,app:APP_VERSION,exportedAt:nowISO(),settings,logs,benchmarks,customProgram:uploadedProgram};
   const name=`training-backup-${dateKey(new Date())}.json`;
   const json=JSON.stringify(data,null,2);
   const markDone=()=>{ meta.lastBackupAt=nowISO(); saveJSON(STORAGE.meta,meta); updateBackupStatus(); toast('Backup saved'); if(currentView==='today') render(); };
@@ -1950,11 +1986,81 @@ function importBackup(ev){
       if(!confirm(`Replace the data on this phone with this backup${d.exportedAt?` from ${formatDate(new Date(d.exportedAt))}`:''}?`)) return;
       settings=deepSettings(d.settings); logs=d.logs||{}; benchmarks=d.benchmarks||{};
       saveJSON(STORAGE.settings,settings); saveJSON(STORAGE.logs,logs); saveJSON(STORAGE.benchmarks,benchmarks);
+      // Older backups omit customProgram; never remove an installed programme implicitly.
+      if(Object.prototype.hasOwnProperty.call(d,'customProgram')
+         && (d.customProgram===null || validProgram(d.customProgram))){
+        uploadedProgram=d.customProgram;
+        if(uploadedProgram) saveJSON(STORAGE.program,uploadedProgram);
+        else localStorage.removeItem(STORAGE.program);
+      }
       settingsDialog.close(); toast('Backup imported'); render();
     }catch{ alert('Could not read this backup file.'); }
     finally{ ev.target.value=''; }
   };
   reader.readAsText(file);
+}
+// Programme import changes future workout prescriptions ONLY, not training data.
+function validProgram(d){
+  if(!d || d.type!=='training-program-v1' || d.version!==1
+    || d.startWeek!==5 || d.endWeek!==12
+    || typeof d.name!=='string' || d.name.length<2 || d.name.length>150
+    || !d.sessions || typeof d.sessions!=='object') return false;
+  for(let w=5;w<=12;w++){
+    for(const day of ['sat','sun','wed']){
+      const raw=d.sessions['w'+w+'-'+day];
+      if(!raw) return false;
+      const options=day==='wed'?[raw.regular,raw.cf]:[raw];
+      for(const sess of options){
+        if(!sess || !Array.isArray(sess.exercises) || sess.exercises.length<1 || sess.exercises.length>20
+          || !Array.isArray(sess.warmup) || sess.warmup.length>15) return false;
+        if(sess.warmup.some(x=>!Array.isArray(x) || x.length!==2
+          || x.some(y=>typeof y!=='string' || y.length>300))) return false;
+        const names=new Set();
+        for(const ex of sess.exercises){
+          if(!ex || typeof ex.name!=='string' || ex.name.length<2 || ex.name.length>100
+            || names.has(ex.name) || !Number.isInteger(ex.sets) || ex.sets<1 || ex.sets>8
+            || typeof ex.reps!=='string' || ex.reps.length>32 || !/\d/.test(ex.reps)
+            || typeof ex.note!=='string' || ex.note.length>1200) return false;
+          names.add(ex.name);
+        }
+      }
+    }
+  }
+  return true;
+}
+function updateProgramStatus(){
+  const el=document.getElementById('programStatus');
+  if(!el) return;
+  el.textContent=uploadedProgram
+    ? uploadedProgram.name+' · Weeks '+uploadedProgram.startWeek+'–'+uploadedProgram.endWeek+' loaded. Existing training logs unchanged.'
+    : 'Built-in 12-week programme. Import a custom programme to update Weeks 5–12 without changing your logs.';
+}
+function importProgram(ev){
+  const file=ev.target.files?.[0];
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    try{
+      const d=JSON.parse(reader.result);
+      if(!validProgram(d)) throw new Error('invalid programme');
+      if(!confirm('Import '+d.name+' for Weeks 5–12? Your workout logs, benchmarks and settings will remain unchanged.')) return;
+      uploadedProgram=d;
+      saveJSON(STORAGE.program,uploadedProgram);
+      settingsDialog.close();
+      toast('Programme imported');
+      render();
+    }catch(err){
+      alert('Could not read this programme file. Select a training-program-v1 JSON export.');
+    }finally{ ev.target.value=''; }
+  };
+  reader.readAsText(file);
+}
+function restoreBuiltInProgram(){
+  if(!uploadedProgram) return;
+  if(!confirm('Restore the built-in workout programme? Your training logs will remain saved.')) return;
+  uploadedProgram=null;
+  localStorage.removeItem(STORAGE.program);
+  settingsDialog.close(); toast('Built-in programme restored'); render();
 }
 function toast(msg){
   const t=document.createElement('div'); t.className='toast'; t.textContent=msg;
@@ -1983,7 +2089,7 @@ function openSettings(){
   setInput('lateralBaselineInput',settings.baselines.lateralRaise); setInput('scaptionBaselineInput',settings.baselines.scaption); setInput('hammerBaselineInput',settings.baselines.hammerCurl);
   document.getElementById('soundPref').checked=!!settings.prefs.sound;
   document.getElementById('wakePref').checked=!!settings.prefs.wakeLock;
-  updateBaselineHints(); updateBackupStatus();
+  updateBaselineHints(); updateBackupStatus(); updateProgramStatus();
   document.getElementById('bodyweightInput').oninput=updateBaselineHints;
   settingsDialog.showModal();
 }
@@ -2008,6 +2114,8 @@ document.getElementById('settingsBtn').onclick=openSettings;
 document.getElementById('saveSettingsBtn').onclick=saveSettings;
 document.getElementById('exportBtn').onclick=exportBackup;
 document.getElementById('importInput').onchange=importBackup;
+document.getElementById('programImportInput').onchange=importProgram;
+document.getElementById('resetProgramBtn').onclick=restoreBuiltInProgram;
 document.getElementById('resetBtn').onclick=()=>{
   if(!confirm('Delete all workout logs, benchmarks and settings on this phone? Export a backup first if unsure.')) return;
   Object.values(STORAGE).forEach(k=>localStorage.removeItem(k));
