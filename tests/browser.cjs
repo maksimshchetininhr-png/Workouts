@@ -35,7 +35,7 @@ const { chromium } = require('playwright');
     assert.equal(result.heavy.referenceWeight,100);
     assert.equal(result.heavy.value,85);
     assert.equal(result.curl.referenceWeight,16);
-    assert.deepEqual(result.targets.map(t=>t.weight),[40,85]);
+    assert.deepEqual(result.targets.map(t=>t.weight),[85,85]);
     assert.equal(result.nextBlock.referenceWeight,100,'skip the prior deload');
     assert.equal(result.technique.value,65,'technique uses working load, not ramp set');
     assert.equal(result.performance.load,'16 kg');

@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.22';
+const APP_VERSION = '5.23';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -1085,7 +1085,6 @@ function setTargets(e, week, day, entry){
     const ownR=numeric(saved[i]?.reps);
     const prevW=numeric(p.weight);
     const prevR=numeric(p.reps);
-    const prevRir=p.rir===''||p.rir==null?null:Number(p.rir);
 
     let targetWeight=suggestedWorkingWeight ?? prevW ?? null;
     let targetRep=range?.min ?? prevR ?? null;
@@ -1105,12 +1104,11 @@ function setTargets(e, week, day, entry){
     if(deload){
       if(weightOptional(e.name)){
         targetWeight=null;
-      } else if(prevW){
+      } else if(profile){
         const step=loadStep(e.name);
-        const deloadWeight=sug?.kind==='deload' && sug?.value!=null
+        targetWeight=sug?.kind==='deload' && sug.value!=null
           ? sug.value
-          : Math.max(step,roundStep(prevW*0.85,step));
-        targetWeight=Math.min(prevW,deloadWeight);
+          : Math.max(step,roundStep(workingWeight*0.85,step));
       }
 
       if(range){
@@ -1138,36 +1136,12 @@ function setTargets(e, week, day, entry){
         if(prevR<range.max && !repBumpUsed) repBumpUsed=true;
       }
     } else if(range && prevW && prevR){
-      const step=loadStep(e.name);
-
-      // A lighter set that overshot the rep ceiling was not an appropriate
-      // work-set load. Bring it up to at least the identified working load.
-      if(workingWeight && prevW<workingWeight && prevR>range.max){
-        targetWeight=Math.max(workingWeight,suggestedWorkingWeight||workingWeight);
+      // The exercise recommendation owns the load for every working set.
+      // Historical ramp/back-off rows must not reintroduce a different load
+      // or contradict an exercise-wide increase/reduction. Warm-ups are separate.
+      if(targetWeight!==prevW){
         targetRep=range.min;
-      }
-      // If this exact set was far too light, progress it more aggressively.
-      else if(prevR>=range.max+4){
-        targetWeight=Math.max(prevW+step*2,roundStep(prevW*1.15,step),suggestedWorkingWeight||0);
-        targetRep=range.min;
-      }
-      else if(prevR>=range.max+2){
-        targetWeight=Math.max(prevW+step,roundStep(prevW*1.10,step),suggestedWorkingWeight||0);
-        targetRep=range.min;
-      }
-      // Below the range at/near failure: back off one step for that set.
-      else if(prevR<range.min && prevRir!=null && prevRir<=1){
-        targetWeight=Math.max(step,prevW-step);
-        targetRep=range.min;
-      }
-      // If the global working load increased, restart near the bottom of range.
-      else if(suggestedWorkingWeight && workingWeight && suggestedWorkingWeight>workingWeight){
-        targetWeight=Math.max(prevW,suggestedWorkingWeight);
-        targetRep=range.min;
-      }
-      // Otherwise preserve the set's actual load and progress reps gradually.
-      else{
-        targetWeight=prevW;
+      } else {
         targetRep=Math.min(range.max,Math.max(range.min,prevR));
         if(prevR<range.max && !repBumpUsed){
           targetRep=Math.min(range.max,prevR+1);

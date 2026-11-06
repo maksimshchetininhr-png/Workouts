@@ -2,6 +2,10 @@
 
 A phone-friendly installable web app (PWA) for the 12-week Saturday / Sunday / Wednesday program.
 
+## v5.23: consistent working-set targets
+
+Grey load targets now follow the exercise's working-load recommendation across every set. Historical ramp or back-off sets no longer produce a 70–65–70 kg suggestion or override an exercise-wide reduction. Progression and deload reductions apply consistently; previously entered loads and reps remain intact. Run `node tests/targets.cjs` with Playwright available and the local server running to exercise repeat, increase, reduction, deload, baseline and saved-value cases.
+
 ## v5.22: updated Weeks 5–12 programme
 
 The built-in programme now uses the supplied **Strength + Shoulder Capacity + Progressive Knee Rehabilitation** plan. [Readable schedule](docs/training-program-weeks5-12-readable.md) lists every session; `program.js` contains its complete prescriptions, warmups, notes, goals and rehab rules. Weeks 1–4, the existing start date, workout logs, times, settings and benchmarks are retained. With the original start date, Week 5 begins on 7 November 2026.
