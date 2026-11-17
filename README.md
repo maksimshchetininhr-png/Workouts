@@ -2,6 +2,14 @@
 
 A phone-friendly installable web app (PWA) for the 12-week Saturday / Sunday / Wednesday program.
 
+## v5.24: move the programme after missed workouts
+
+After illness or a break, open **Move remaining programme** from **Missed recently** on Today or from **Settings → Program**. Choose the first unstarted workout to move and the date you are ready to return. Review the dates, then choose **Apply new dates**. Closing the preview leaves the schedule unchanged.
+
+The selected workout and all later unstarted workouts move in order into the next Saturday, Sunday and Wednesday slots. For example, returning on Tuesday 17 November after missing Week 6 Saturday and Sunday schedules those workouts for Wednesday 18 November and Saturday 21 November, then Week 6 Wednesday for Sunday 22 November. The workout names, prescriptions and deload weeks stay attached to their original sessions. Started/completed workouts keep their dates and logs; occupied dates are skipped. The programme's end moves too, and another break can be scheduled later.
+
+Today, Program, missed-workout detection and backups use the new dates. Changing the overall start date asks before clearing a moved schedule. Dates are saved on this device and included in backup export/import. Run `node tests/schedule.cjs` with Playwright and Chromium available and the local server running for the missed-weekend, preview/cancel/apply, persistence, backup, repeated-break and collision checks.
+
 ## v5.23: consistent working-set targets
 
 Grey load targets now follow the exercise's working-load recommendation across every set. Historical ramp or back-off sets no longer produce a 70–65–70 kg suggestion or override an exercise-wide reduction. Progression and deload reductions apply consistently; previously entered loads and reps remain intact. Run `node tests/targets.cjs` with Playwright available and the local server running to exercise repeat, increase, reduction, deload, baseline and saved-value cases.

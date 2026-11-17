@@ -67,6 +67,9 @@
         <div class="settings-section">Program</div>
         <label>Start date (a Saturday)<input type="date" id="startDateInput" /></label>
 
+        <button type="button" class="secondary full" id="moveProgramBtn">Move remaining programme</button>
+        <p class="field-hint">Missed workouts due to illness or a break? Choose where to resume and preview the new dates.</p>
+
         <div class="settings-section">Profile</div>
         <div class="three-grid">
           <label>Age<input type="number" inputmode="numeric" id="ageInput" /></label>
@@ -150,6 +153,20 @@
       </div>
       <p class="field-hint" style="margin-top:-6px">It will show on Today for the rest of the day.</p>
       <div class="chooser-list"></div>
+    </form>
+  </dialog>
+
+  <dialog id="scheduleDialog" class="sheet">
+    <form id="scheduleMoveForm" class="dialog-card">
+      <div class="dialog-head">
+        <h2 tabindex="-1" autofocus>Move remaining programme</h2>
+        <button type="button" class="icon-btn" onclick="this.closest('dialog').close()" aria-label="Close">×</button>
+      </div>
+      <p class="field-hint">Resume when you feel ready after illness or a break. Workouts keep their original names and order, using the next Saturday, Sunday and Wednesday slots. No extra catch-up sessions are added.</p>
+      <label>First workout to move<select id="moveFrom"></select></label>
+      <label>Ready to return on<input type="date" id="resumeDate" required /></label>
+      <div id="schedulePreview" class="schedule-preview" aria-live="polite"></div>
+      <button type="submit" id="applyScheduleMove" class="primary full">Apply new dates</button>
     </form>
   </dialog>
 

@@ -902,3 +902,7 @@ body.flash::after { background:var(--accent); }
     font-size:14px;
   }
 }
+
+/* Keep the full rescheduling preview usable on a phone. */
+.schedule-preview { max-height:35vh; overflow:auto; margin:12px 0; font-size:14px; }
+.schedule-preview li { margin:8px 0; }

@@ -1,6 +1,6 @@
 // The only place the version lives: index.html shows it and the service worker
 // cache is keyed on it, so bump this one line for each release.
-const APP_VERSION = '5.23';
+const APP_VERSION = '5.24';
 
 const STORAGE = {
   settings: 'trainingApp.settings.v1',
@@ -14,6 +14,7 @@ const STORAGE = {
 
 const defaultSettings = {
   startDate: '2026-10-10',
+  sessionDates: {},
   profile: { age: 36, heightCm: 181, bodyweightKg: 82 },
   baselines: {
     deadlift5RM: '',
@@ -399,6 +400,10 @@ function deepSettings(raw){
   const out = structuredClone(defaultSettings);
   if(!raw) return out;
   if(raw.startDate) out.startDate = raw.startDate;
+  // Only accept real calendar dates for known sessions from older/imported settings.
+  for(const [key,value] of Object.entries(raw.sessionDates || {})){
+    if(/^w([1-9]|1[0-2])-(sat|sun|wed)$/.test(key) && validScheduleDate(value)) out.sessionDates[key]=value;
+  }
   out.profile = {...out.profile, ...(raw.profile||{})};
   out.baselines = {...out.baselines, ...(raw.baselines||{})};
   out.prefs = {...out.prefs, ...(raw.prefs||{})};
@@ -415,7 +420,7 @@ let uploadedProgram = loadJSON(STORAGE.program, null);
 applyOneTimeDataFixes();
 let currentView = 'today';
 let selectedWeek = clampWeek(getProgramWeek(new Date()));
-let selectedDay = dayKeyFromDate(new Date()) || 'sat';
+let selectedDay = scheduledSession(new Date())?.day || 'sat';
 let activeSession = null;
 let timerTickHandle = null;
 let restAlertedFor = null;
@@ -442,7 +447,7 @@ function applyOneTimeDataFixes(){
   const durationFixKey='fixed-2026-10-24-workout-duration-60m-v1';
   if(!meta?.[durationFixKey]){
     const targetDate=new Date(2026,9,24,12);
-    const week=getProgramWeek(targetDate);
+    const week=originalProgramWeek(targetDate);
     const day=dayKeyFromDate(targetDate);
     const key=logKey(week,day);
     const entry=logs[key];
@@ -475,7 +480,7 @@ function applyOneTimeDataFixes(){
     const fixKey=`fixed-${date}-wed-cf-gym-v1`;
     if(meta?.[fixKey]) return;
     const dateObj=parseLocalDate(date);
-    const week=getProgramWeek(dateObj);
+    const week=originalProgramWeek(dateObj);
     if(week<1 || week>12 || dayKeyFromDate(dateObj)!=='wed') return;
     const key=logKey(week,'wed');
     const entry=logs[key];
@@ -505,7 +510,7 @@ function applyOneTimeDataFixes(){
     const fixKey=`fixed-${date}-wed-cf-gym-v2`;
     if(meta?.[fixKey]) return;
     const dateObj=parseLocalDate(date);
-    const week=getProgramWeek(dateObj);
+    const week=originalProgramWeek(dateObj);
     if(week<1 || week>12 || dayKeyFromDate(dateObj)!=='wed') return;
 
     const key=logKey(week,'wed');
@@ -612,9 +617,29 @@ function workoutCoverHTML(week,day){
   </section>`;
 }
 function parseLocalDate(s){ const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d,12); }
+function validScheduleDate(value){
+  return typeof value==='string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+    && dateKey(parseLocalDate(value))===value;
+}
+function programmeSessions(){
+  return Array.from({length:12},(_,i)=>DAYS.map(day=>({week:i+1,day}))).flat();
+}
+function scheduledSession(date){
+  return programmeSessions().find(s=>dateKey(sessionDate(s.week,s.day))===dateKey(date)) || null;
+}
 function getProgramWeek(date){
+  if(Object.keys(settings.sessionDates).length){
+    const t=dateKey(date);
+    const sessions=programmeSessions().map(s=>({...s,date:dateKey(sessionDate(s.week,s.day))})).sort((a,b)=>a.date.localeCompare(b.date));
+    if(t>sessions.at(-1).date) return 13;
+    return sessions.filter(s=>s.date<=t).at(-1)?.week || 0;
+  }
+  return originalProgramWeek(date);
+}
+function originalProgramWeek(date){
   const start = parseLocalDate(settings.startDate);
-  const diff = Math.floor((stripTime(date)-stripTime(start))/86400000);
+  const calendarDay=d=>Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000;
+  const diff = calendarDay(date)-calendarDay(start);
   return Math.floor(diff/7)+1;
 }
 function stripTime(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(); }
@@ -622,21 +647,75 @@ function formatDate(d){ return new Intl.DateTimeFormat(undefined,{weekday:'short
 function formatShortDate(d){ return new Intl.DateTimeFormat(undefined,{month:'short',day:'numeric'}).format(d); }
 function dateKey(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function sessionDate(week, day){
+  const moved=settings.sessionDates[logKey(week,day)];
+  if(moved) return parseLocalDate(moved);
   const start = parseLocalDate(settings.startDate);
   const d = new Date(start.getFullYear(), start.getMonth(), start.getDate()+(week-1)*7);
   for(let i=0;i<7;i++){ if(dayKeyFromDate(d)===day) return d; d.setDate(d.getDate()+1); }
   return d;
 }
 function nextTrainingDate(from=new Date()){
-  const start = parseLocalDate(settings.startDate);
-  let d = new Date(from.getFullYear(),from.getMonth(),from.getDate());
-  if (d < start) d = new Date(start);
-  for(let i=0;i<21;i++){
-    const w = getProgramWeek(d); const k=dayKeyFromDate(d);
-    if(w>=1 && w<=12 && k) return d;
-    d.setDate(d.getDate()+1);
+  const dates=programmeSessions().map(s=>sessionDate(s.week,s.day)).filter(d=>dateKey(d)>=dateKey(from));
+  return dates.sort((a,b)=>a-b)[0] || null;
+}
+// Logged workouts retain their dates and data; unstarted workouts keep their order.
+function scheduleMovePlan(key, resume){
+  if(!validScheduleDate(resume) || resume<dateKey(new Date())) throw new Error('Choose today or a future return date.');
+  const sessions=programmeSessions(), index=sessions.findIndex(s=>logKey(s.week,s.day)===key);
+  if(index<0 || hasData(getSessionLog(sessions[index].week,sessions[index].day))) throw new Error('Choose a workout that has not been started.');
+  const movable=sessions.slice(index).filter(s=>!hasData(getSessionLog(s.week,s.day)));
+  const moving=new Set(movable.map(s=>logKey(s.week,s.day)));
+  const reserved=new Set(sessions.filter(s=>!moving.has(logKey(s.week,s.day))).map(s=>dateKey(sessionDate(s.week,s.day))));
+  const cursor=parseLocalDate(resume);
+  // Do not move the selected session ahead of an earlier programme session.
+  for(const s of sessions.slice(0,index)){
+    const prior=sessionDate(s.week,s.day);
+    if(dateKey(cursor)<=dateKey(prior)){
+      cursor.setTime(parseLocalDate(dateKey(prior)).getTime());
+      cursor.setDate(cursor.getDate()+1);
+    }
   }
-  return null;
+  return movable.map(s=>{
+    while(!dayKeyFromDate(cursor) || reserved.has(dateKey(cursor))) cursor.setDate(cursor.getDate()+1);
+    const change={...s,from:dateKey(sessionDate(s.week,s.day)),to:dateKey(cursor)};
+    cursor.setDate(cursor.getDate()+1);
+    return change;
+  });
+}
+function openScheduleMove(){
+  const dialog=document.getElementById('scheduleDialog');
+  const available=programmeSessions().filter(s=>!hasData(getSessionLog(s.week,s.day)));
+  const select=document.getElementById('moveFrom');
+  select.innerHTML=available.map(s=>`<option value="${logKey(s.week,s.day)}">W${s.week} · ${dayLabel(s.day)} · ${formatDate(sessionDate(s.week,s.day))}</option>`).join('');
+  // Prefer the oldest recent missed workout (e.g. Saturday before Sunday).
+  const missed=missedSessions(new Date(),21).reverse()[0];
+  if(missed) select.value=logKey(missed.week,missed.day);
+  const input=document.getElementById('resumeDate');
+  input.min=dateKey(new Date()); input.value=dateKey(new Date());
+  select.onchange=updateSchedulePreview; input.oninput=updateSchedulePreview;
+  updateSchedulePreview(); dialog.showModal();
+}
+function updateSchedulePreview(){
+  const preview=document.getElementById('schedulePreview'), button=document.getElementById('applyScheduleMove');
+  try{
+    const plan=scheduleMovePlan(document.getElementById('moveFrom').value,document.getElementById('resumeDate').value);
+    button.disabled=!plan.some(s=>s.from!==s.to);
+    preview.innerHTML=`<p>${plan.length} unstarted workouts. Logged workouts stay on their existing dates.</p><ol>${plan.map(s=>`<li>W${s.week} · ${dayLabel(s.day)}: ${formatDate(parseLocalDate(s.from))} → <strong>${formatDate(parseLocalDate(s.to))}</strong></li>`).join('')}</ol>`;
+  }catch(error){ button.disabled=true; preview.textContent=error.message; }
+}
+function applyScheduleMove(event){
+  event.preventDefault();
+  try{
+    const plan=scheduleMovePlan(document.getElementById('moveFrom').value,document.getElementById('resumeDate').value);
+    const next={...settings.sessionDates};
+    plan.forEach(s=>{next[logKey(s.week,s.day)]=s.to;});
+    const updated={...settings,sessionDates:next};
+    saveJSON(STORAGE.settings,updated); settings=updated;
+    localStorage.removeItem(STORAGE.override);
+    document.getElementById('scheduleDialog').close();
+    selectedWeek=clampWeek(getProgramWeek(new Date()));
+    render(); toast('Remaining programme moved');
+  }catch(error){ document.getElementById('schedulePreview').textContent=error.message; }
 }
 function gymTypeForSession(week,day){
   if(day!=='wed') return 'cf';
@@ -1225,7 +1304,7 @@ function missedHTML(excludeKey){
   if(!list.length) return '';
   return `<section class="card missed-card"><div class="section-kicker warn-text">Missed recently</div>${list.map(m=>`
     <div class="missed-row"><div><strong>W${m.week} · ${dayLabel(m.day)}</strong><div class="exercise-meta">${sessionName(m.week,m.day)} · ${formatDate(m.date)}</div></div>
-    <button type="button" class="secondary compact" data-choose="${m.week}-${m.day}">Do today</button></div>`).join('')}</section>`;
+    <button type="button" class="secondary compact" data-choose="${m.week}-${m.day}">Do today</button></div>`).join('')}<button type="button" class="secondary full" data-move-program>Move remaining programme</button></section>`;
 }
 function backupReminderHTML(){
   if(!Object.values(logs).some(hasData)) return '';
@@ -1235,6 +1314,7 @@ function backupReminderHTML(){
   return `<div class="callout backup-callout"><div><strong>${last?`Last backup ${days} days ago`:'No backup yet'}</strong><div class="exercise-meta">Your logs are stored only on this phone.</div></div><button type="button" class="secondary compact" data-backup-now>Back up</button></div>`;
 }
 function bindCommon(){
+  app.querySelectorAll('[data-move-program]').forEach(b=>b.onclick=openScheduleMove);
   app.querySelectorAll('[data-choose]').forEach(b=>b.onclick=()=>{ const [w,d]=b.dataset.choose.split('-'); chooseSession(Number(w),d); });
   app.querySelectorAll('[data-backup-now]').forEach(b=>b.onclick=exportBackup);
   app.querySelectorAll('[data-open-chooser]').forEach(b=>b.onclick=openChooser);
@@ -1285,9 +1365,9 @@ function openChooser(){
 function renderToday(){
   pageTitle.textContent='Today';
   const today=new Date();
-  const w=getProgramWeek(today), dk=dayKeyFromDate(today);
+  const w=getProgramWeek(today);
   const override=todaysOverride();
-  const scheduled = (w>=1 && w<=12 && dk) ? {week:w, day:dk} : null;
+  const scheduled = scheduledSession(today);
   const target = override || scheduled;
   if(target){
     app.innerHTML = missedHTML(logKey(target.week,target.day))
@@ -1301,7 +1381,7 @@ function renderToday(){
     app.innerHTML=`<section class="card hero"><div class="hero-kicker">Program complete</div><h2 class="hero-title">12 weeks done</h2><p class="hero-note">Record your Week 12 benchmarks and compare them with Week 1 on the Progress tab.</p></section>${backupReminderHTML()}`;
     return;
   }
-  const nw=getProgramWeek(next), nd=dayKeyFromDate(next);
+  const {week:nw,day:nd}=scheduledSession(next);
   const daysAway=Math.round((stripTime(next)-stripTime(today))/86400000);
   const beforeStart=w<1;
   app.innerHTML = `
@@ -2117,7 +2197,12 @@ function openSettings(){
 }
 function saveSettings(e){
   e.preventDefault();
-  settings.startDate=document.getElementById('startDateInput').value||settings.startDate;
+  const startDate=document.getElementById('startDateInput').value||settings.startDate;
+  if(startDate!==settings.startDate && Object.keys(settings.sessionDates).length){
+    if(!confirm('Changing the programme start date clears your moved schedule. Workout logs stay intact. Continue?')) return;
+    settings.sessionDates={};
+  }
+  settings.startDate=startDate;
   settings.profile={age:numOr('ageInput',settings.profile.age), heightCm:numOr('heightInput',settings.profile.heightCm), bodyweightKg:numOr('bodyweightInput',settings.profile.bodyweightKg)};
   settings.baselines={
     deadlift5RM:numOrBlank('deadliftBaselineInput'), chinupMax:numOrBlank('chinupBaselineInput'), chestPress:numOrBlank('chestBaselineInput'), dbRow:numOrBlank('rowBaselineInput'),
@@ -2133,6 +2218,8 @@ function saveSettings(e){
 document.querySelectorAll('[data-app-version]').forEach(el=>el.textContent=`v${APP_VERSION}`);
 document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>{ currentView=b.dataset.view; render(); window.scrollTo(0,0); }));
 document.getElementById('settingsBtn').onclick=openSettings;
+document.getElementById('moveProgramBtn').onclick=()=>{settingsDialog.close();openScheduleMove();};
+document.getElementById('scheduleMoveForm').onsubmit=applyScheduleMove;
 document.getElementById('saveSettingsBtn').onclick=saveSettings;
 document.getElementById('exportBtn').onclick=exportBackup;
 document.getElementById('githubBackupBtn').onclick=uploadGitHubBackup;
